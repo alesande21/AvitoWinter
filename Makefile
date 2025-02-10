@@ -10,8 +10,8 @@ install_work_v:
 ver:
 	oapi-codegen -version
 
-genUserService:
-	oapi-codegen --config=configs/oapi/configUserService.yaml api/shopAPI.yml
+genService:
+	oapi-codegen --config=configs/oapi/configShopService.yaml api/shopAPI.yml
 
 init:
 	go mod init "AvitoWinter"
