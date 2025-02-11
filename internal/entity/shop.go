@@ -9,6 +9,28 @@ type UserInfo struct {
 }
 
 type PurchaseInfo struct {
+	username string
+	item     string
+	quantity int
+}
+
+func (p PurchaseInfo) Username() string {
+	return p.username
+}
+
+func (p PurchaseInfo) Item() string {
+	return p.item
+}
+
+func (p PurchaseInfo) Quantity() int {
+	return p.quantity
+}
+
+func NewPurchaseInfo(username, item string, quantity int) (*PurchaseInfo, error) {
+	if item == "" || username == "" {
+		return nil, fmt.Errorf(": не задан предмет покупки: %s", item)
+	}
+	return &PurchaseInfo{username: username, item: item, quantity: quantity}, nil
 }
 
 type TransferInfo struct {

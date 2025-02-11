@@ -7,17 +7,17 @@ import (
 
 type ShopRepo interface {
 	GetInfoByUUID(ctx context.Context, userUUID string) error
-	PutOrder(ctx context.Context)
+	PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo) error
 
 	Ping() error
 }
 
 type ShopService struct {
-	Repo ShopRepo
+	repo ShopRepo
 }
 
 func NewShopService(repo ShopRepo) *ShopService {
-	return &ShopService{Repo: repo}
+	return &ShopService{repo: repo}
 }
 
 func (s *ShopService) GetInfo(ctx context.Context) {
@@ -29,9 +29,8 @@ func (s *ShopService) TransferCoin(ctx context.Context, transferInfo entity2.Tra
 	return nil
 }
 
-func (s *ShopService) PurchaseItem(ctx context.Context, purchasedInfo entity2.PurchaseInfo) error {
-
-	return nil
+func (s *ShopService) PurchaseItem(ctx context.Context, info entity2.PurchaseInfo) error {
+	return s.PurchaseItem(ctx, info)
 }
 
 func (s *ShopService) AuthenticationUser(ctx context.Context, userCredential entity2.UserCredentials) (string, error) {

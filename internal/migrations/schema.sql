@@ -39,5 +39,6 @@ CREATE TABLE IF NOT EXISTS purchases
 CREATE TABLE IF NOT EXISTS ownership (
     user_uuid VARCHAR(100) REFERENCES users(uuid) ON DELETE CASCADE,
     items_uuid VARCHAR(100) REFERENCES items(uuid) ON DELETE CASCADE,
-    quantity INTEGER NOT NULL CHECK ( quantity > 0 )
+    quantity INTEGER NOT NULL CHECK ( quantity > 0 ),
+    PRIMARY KEY (user_uuid, items_uuid)
 )

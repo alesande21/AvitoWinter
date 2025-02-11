@@ -1,6 +1,7 @@
 package repository
 
 import (
+	utils2 "AvitoWinter/internal/utils"
 	"github.com/google/uuid"
 	"time"
 )
@@ -26,7 +27,7 @@ type Transfer struct {
 	DateCreated time.Time `json:"date_created"`
 }
 
-type Order struct {
+type Purchase struct {
 	ID          int       `json:"id"`
 	UserUUID    uuid.UUID `json:"user_uuid"`
 	ItemUUID    uuid.UUID `json:"item_uuid"`
@@ -35,8 +36,23 @@ type Order struct {
 	DateCreated time.Time `json:"date_created"`
 }
 
+func NewPurchase(userUUID uuid.UUID, itemUUID uuid.UUID, quantity int, price int) *Purchase {
+	serverTime := utils2.GetCurrentTime()
+	purchase := &Purchase{UserUUID: userUUID, ItemUUID: itemUUID, Quantity: quantity, TotalPrice: quantity * price, DateCreated: serverTime}
+	return purchase
+}
+
 type Ownership struct {
 	UserUUID uuid.UUID `json:"user_uuid"`
 	ItemUUID uuid.UUID `json:"item_uuid"`
 	Quantity int       `json:"quantity"`
+}
+
+func NewOwnership(userUUID uuid.UUID, itemUUID uuid.UUID, quantity int) *Ownership {
+	return &Ownership{UserUUID: userUUID, ItemUUID: itemUUID, Quantity: quantity}
+}
+
+func (o *Ownership) IncQuantity() int {
+	o.Quantity++
+	return o.Quantity
 }
