@@ -1,13 +1,16 @@
 package service
 
 import (
+	auth2 "AvitoWinter/internal/auth"
 	entity2 "AvitoWinter/internal/entity"
 	"context"
+	"fmt"
 )
 
 type ShopRepo interface {
 	GetInfoByUUID(ctx context.Context, userUUID string) error
 	PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo) error
+	CheckUser(ctx context.Context, userCredential entity2.UserCredentials) (string, error)
 
 	Ping() error
 }
@@ -34,6 +37,20 @@ func (s *ShopService) PurchaseItem(ctx context.Context, info entity2.PurchaseInf
 }
 
 func (s *ShopService) AuthenticationUser(ctx context.Context, userCredential entity2.UserCredentials) (string, error) {
+	UUID, err := s.repo.CheckUser(ctx, userCredential)
+	if err != nil {
+		return "", fmt.Errorf("-> s.Repo.CheckUser%v", err)
+	}
 
-	return "", nil
+	tokenString, err := auth2.GenerateJWT(UUID)
+	if err != nil {
+		return "", fmt.Errorf("-> auth2.GenerateJWT%v", err)
+	}
+
+	return tokenString, nil
+}
+
+func (s *ShopService) ValidateToken(ctx context.Context, tokenString string) error {
+
+	return nil
 }

@@ -1,7 +1,7 @@
 package http
 
 import (
-	"AvitoWinter/internal/entity"
+	entity2 "AvitoWinter/internal/entity"
 	"AvitoWinter/internal/service"
 	"encoding/json"
 	log2 "github.com/sirupsen/logrus"
@@ -20,22 +20,56 @@ func NewUserServer(service *service.ShopService) *UserServer {
 }
 
 func (u UserServer) PostApiAuth(w http.ResponseWriter, r *http.Request) {
-	//TODO implement me
-	panic("implement me")
+	var errorDescription string
+	var authRequest AuthRequest
+	if err := json.NewDecoder(r.Body).Decode(&authRequest); err != nil {
+		log2.Errorf("PostApiAuth-> json.NewDecoder: неверный формат для регистрационных данных пользователя: логин и пароль: %s", err.Error())
+		errorDescription = "Неверный формат для регистрационных данных пользователя: логин и пароль."
+		sendErrorResponse(w, http.StatusBadRequest, ErrorResponse{Errors: &errorDescription})
+		return
+	}
+
+	newUserCredentials, err := entity2.NewUserCredentials(authRequest.Username, authRequest.Password)
+	if err != nil {
+		errorDescription = "Неверный формат для регистрационных данных пользователя: логин и пароль."
+		sendErrorResponse(w, http.StatusBadRequest, ErrorResponse{Errors: &errorDescription})
+		return
+	}
+
+	tokenString, err := u.service.AuthenticationUser(r.Context(), *newUserCredentials)
+	if err != nil {
+		errorDescription = "Аутификация не пройдена."
+		sendErrorResponse(w, http.StatusBadRequest, ErrorResponse{Errors: &errorDescription})
+		return
+	}
+
+	var authResponse AuthResponse
+	authResponse.Token = &tokenString
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(authResponse); err != nil {
+		errorDescription = "Ошибка кодирования ответа."
+		log2.Errorf("CreateUser-> json.NewEncoder: ошибка при кодирования овета: %s", err.Error())
+		sendErrorResponse(w, http.StatusInternalServerError, ErrorResponse{Errors: &errorDescription})
+	}
+
 }
 
 func (u UserServer) GetApiBuyItem(w http.ResponseWriter, r *http.Request, item string) {
-	purchaseInfo, err := entity.NewPurchaseInfo(item, item)
+	var errorDescription string
+
+	purchaseInfo, err := entity2.NewPurchaseInfo(item, item, 1)
 	if err != nil {
-		var errorDescription = "Не задан предмет покупки."
+		errorDescription = "Не задан предмет покупки."
 		sendErrorResponse(w, http.StatusBadRequest, ErrorResponse{Errors: &errorDescription})
 		return
 	}
 
 	err = u.service.PurchaseItem(r.Context(), *purchaseInfo)
 	if err != nil {
-		var errorDecription string = "Какая то там ошибка"
-		sendErrorResponse(w, http.StatusBadRequest, ErrorResponse{Errors: &errorDecription})
+		errorDescription = "Какая то там ошибка"
+		sendErrorResponse(w, http.StatusBadRequest, ErrorResponse{Errors: &errorDescription})
 		return
 	}
 
@@ -45,7 +79,8 @@ func (u UserServer) GetApiBuyItem(w http.ResponseWriter, r *http.Request, item s
 	sb.WriteString("Покупка + ")
 	if err := json.NewEncoder(w).Encode(sb.String()); err != nil {
 		log2.Errorf("CreateUser-> json.NewEncoder: ошибка при кодирования овета: %s", err.Error())
-		sendErrorResponse(w, http.StatusInternalServerError, ErrorResponse{Reason: "Ошибка кодирования ответа."})
+		errorDescription = "Ошибка кодирования ответа."
+		sendErrorResponse(w, http.StatusInternalServerError, ErrorResponse{Errors: &errorDescription})
 	}
 }
 

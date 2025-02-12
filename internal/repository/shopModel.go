@@ -2,7 +2,9 @@ package repository
 
 import (
 	utils2 "AvitoWinter/internal/utils"
+	"fmt"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 	"time"
 )
 
@@ -17,6 +19,27 @@ type User struct {
 	Username string    `json:"username"`
 	Password string    `json:"-"`
 	Coins    int       `json:"coins"`
+}
+
+func NewUser(UUID uuid.UUID, username string, password string, coins int) *User {
+	return &User{UUID: UUID, Username: username, Password: password, Coins: coins}
+}
+
+func (u *User) HashPassword(password string) error {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	if err != nil {
+		return fmt.Errorf("-> bcrypt.GenerateFromPassword%v", err)
+	}
+	u.Password = string(bytes)
+	return nil
+}
+
+func (u *User) CheckPassword(providedPassword string) error {
+	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(providedPassword))
+	if err != nil {
+		return fmt.Errorf("-> bcrypt.CompareHashAndPassword%v", err)
+	}
+	return nil
 }
 
 type Transfer struct {

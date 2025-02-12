@@ -36,6 +36,20 @@ func (s ShopRepo) GetInfoByUUID(ctx context.Context, userUUID string) error {
 	panic("implement me")
 }
 
+func (s ShopRepo) CheckUser(ctx context.Context, userCredential entity2.UserCredentials) (string, error) {
+	repoCredential, err := s.getUserByUsername(ctx, userCredential.Password())
+	if err != nil {
+		return "", fmt.Errorf("-> r.dbRepo.QueryRow.Scan: пользователь по идентификатору %s не найден: %w", userCredential.Identifier(), err)
+	}
+
+	err = repoCredential.CheckPassword(userCredential.Password())
+	if err != nil {
+		return "", fmt.Errorf("-> repoCredential.CheckPassword%v", err)
+	}
+
+	return repoCredential.UUID.String(), nil
+}
+
 func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo) error {
 	queryInsertPurchase := `
 		INSERT INTO purchases (user_uuid, items_uuid, quantity, total_price, date_created)
