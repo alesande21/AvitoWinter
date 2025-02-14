@@ -9,14 +9,14 @@ import (
 var jwtKey = []byte("MySecretKey")
 
 type JWTClaim struct {
-	uuid string
+	UserUUID string `json:"user_uuid"`
 	jwt.StandardClaims
 }
 
 func GenerateJWT(uuid string) (string, error) {
 	expirationTime := time.Now().Add(1 * time.Hour)
 	claims := &JWTClaim{
-		uuid: uuid,
+		UserUUID: uuid,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
@@ -30,7 +30,7 @@ func GenerateJWT(uuid string) (string, error) {
 	return tokenString, nil
 }
 
-func ValidateToken(signedToken string) error {
+func ValidateToken(signedToken string) (*JWTClaim, error) {
 	token, err := jwt.ParseWithClaims(
 		signedToken,
 		&JWTClaim{},
@@ -38,17 +38,17 @@ func ValidateToken(signedToken string) error {
 			return []byte(jwtKey), nil
 		})
 	if err != nil {
-		return fmt.Errorf("-> jwt.ParseWithClaims%v", err)
+		return nil, fmt.Errorf("-> jwt.ParseWithClaims%v", err)
 	}
 
 	claims, ok := token.Claims.(*JWTClaim)
 	if !ok {
-		return fmt.Errorf("-> token.Claims: не возможно распарсить claims")
+		return nil, fmt.Errorf("-> token.Claims: не возможно распарсить claims")
 	}
 
 	if claims.ExpiresAt < time.Now().Local().Unix() {
-		return fmt.Errorf(": token истек")
+		return nil, fmt.Errorf(": token истек")
 	}
 
-	return nil
+	return claims, nil
 }

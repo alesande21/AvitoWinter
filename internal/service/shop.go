@@ -50,7 +50,6 @@ func (s *ShopService) AuthenticationUser(ctx context.Context, userCredential ent
 	return tokenString, nil
 }
 
-func (s *ShopService) ValidateToken(ctx context.Context, tokenString string) error {
-
-	return nil
+func (s *ShopService) ValidateToken(ctx context.Context, tokenString string) (*auth2.JWTClaim, error) {
+	return auth2.ValidateToken(tokenString)
 }

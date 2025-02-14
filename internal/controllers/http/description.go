@@ -53,13 +53,19 @@ func (u UserServer) PostApiAuth(w http.ResponseWriter, r *http.Request) {
 		log2.Errorf("CreateUser-> json.NewEncoder: ошибка при кодирования овета: %s", err.Error())
 		sendErrorResponse(w, http.StatusInternalServerError, ErrorResponse{Errors: &errorDescription})
 	}
-
 }
 
 func (u UserServer) GetApiBuyItem(w http.ResponseWriter, r *http.Request, item string) {
 	var errorDescription string
 
-	purchaseInfo, err := entity2.NewPurchaseInfo(item, item, 1)
+	userUUID, ok := r.Context().Value("user_value").(string)
+	if !ok || userUUID == "" {
+		errorDescription = "User not authenticated"
+		sendErrorResponse(w, http.StatusUnauthorized, ErrorResponse{Errors: &errorDescription})
+		return
+	}
+
+	purchaseInfo, err := entity2.NewPurchaseInfo(userUUID, item, 1)
 	if err != nil {
 		errorDescription = "Не задан предмет покупки."
 		sendErrorResponse(w, http.StatusBadRequest, ErrorResponse{Errors: &errorDescription})
