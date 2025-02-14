@@ -6,7 +6,25 @@ import (
 	"regexp"
 )
 
+type Item struct {
+	item     string
+	quantity int
+}
+
+type Transfer struct {
+	username string
+	amount   int
+}
+
+type UserTransfers struct {
+	received []Transfer
+	send     []Transfer
+}
+
 type UserInfo struct {
+	coins         int
+	items         []Item
+	userTransfers UserTransfers
 }
 
 type PurchaseInfo struct {

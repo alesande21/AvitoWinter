@@ -91,8 +91,14 @@ func (u UserServer) GetApiBuyItem(w http.ResponseWriter, r *http.Request, item s
 }
 
 func (u UserServer) GetApiInfo(w http.ResponseWriter, r *http.Request) {
-	//TODO implement me
-	panic("implement me")
+	var errorDescription string
+
+	userUUID, ok := r.Context().Value("user_value").(string)
+	if !ok || userUUID == "" {
+		errorDescription = "User not authenticated"
+		sendErrorResponse(w, http.StatusUnauthorized, ErrorResponse{Errors: &errorDescription})
+		return
+	}
 }
 
 func (u UserServer) PostApiSendCoin(w http.ResponseWriter, r *http.Request) {
