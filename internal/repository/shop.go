@@ -145,6 +145,12 @@ func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo
 	return nil
 }
 
+func (s ShopRepo) PutTransferInfo(ctx context.Context, info entity2.TransferInfo) error {
+	recipient, err := s.getUserByUsername(ctx, info.RecipientUsername())
+
+	return nil
+}
+
 func (s ShopRepo) Ping() error {
 	//TODO implement me
 	panic("implement me")
@@ -181,6 +187,24 @@ func (s ShopRepo) getUserByUsername(ctx context.Context, username string) (*User
 	err := row.Scan(&user.UUID, &user.Username, &user.Password, &user.Coins)
 	if err != nil {
 		return nil, fmt.Errorf("-> r.dbRepo.QueryRow.Scan: пользователь по username %s не найден: %w", username, err)
+	}
+
+	return user, nil
+}
+
+func (s ShopRepo) getUserByUseUUID(ctx context.Context, userUUID string) (*User, error) {
+	query := `
+		SELECT uuid, username, password, coins
+		FROM users
+		WHERE uuid = $1
+	`
+
+	var user *User
+
+	row := s.dbRepo.QueryRow(ctx, query, userUUID)
+	err := row.Scan(&user.UUID, &user.Username, &user.Password, &user.Coins)
+	if err != nil {
+		return nil, fmt.Errorf("-> r.dbRepo.QueryRow.Scan: пользователь по userUUID %s не найден: %w", userUUID, err)
 	}
 
 	return user, nil

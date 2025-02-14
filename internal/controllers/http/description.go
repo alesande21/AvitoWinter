@@ -96,8 +96,49 @@ func (u UserServer) GetApiInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u UserServer) PostApiSendCoin(w http.ResponseWriter, r *http.Request) {
-	//TODO implement me
-	panic("implement me")
+	var errorDescription string
+
+	userUUID, ok := r.Context().Value("user_value").(string)
+	if !ok || userUUID == "" {
+		errorDescription = "User not authenticated"
+		sendErrorResponse(w, http.StatusUnauthorized, ErrorResponse{Errors: &errorDescription})
+		return
+	}
+
+	var sendRequest SendCoinRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&sendRequest); err != nil {
+		log2.Errorf("PostApiSendCoin-> json.NewDecoder: неверный формат для регистрационных данных пользователя: логин и пароль: %s", err.Error())
+		errorDescription = "Неверный формат для трансфера коинов."
+		sendErrorResponse(w, http.StatusBadRequest, ErrorResponse{Errors: &errorDescription})
+		return
+	}
+
+	transferInfo, err := entity2.NewTransferInfo(userUUID, sendRequest.ToUser, sendRequest.Amount)
+	if err != nil {
+		log2.Errorf("PostApiSendCoin-> json.NewDecoder: неверный формат для регистрационных данных пользователя: логин и пароль: %s", err.Error())
+		errorDescription = "Неверный формат для трансфера коинов."
+		sendErrorResponse(w, http.StatusBadRequest, ErrorResponse{Errors: &errorDescription})
+		return
+	}
+
+	err = u.service.TransferCoin(r.Context(), *transferInfo)
+	if err != nil {
+		log2.Errorf("PostApiSendCoin-> json.NewDecoder: неверный формат для регистрационных данных пользователя: логин и пароль: %s", err.Error())
+		errorDescription = "Неверный формат для трансфера коинов."
+		sendErrorResponse(w, http.StatusBadRequest, ErrorResponse{Errors: &errorDescription})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	var sb strings.Builder
+	sb.WriteString("Трансфер реализован.")
+	if err := json.NewEncoder(w).Encode(sb.String()); err != nil {
+		log2.Errorf("CreateUser-> json.NewEncoder: ошибка при кодирования овета: %s", err.Error())
+		errorDescription = "Ошибка кодирования ответа."
+		sendErrorResponse(w, http.StatusInternalServerError, ErrorResponse{Errors: &errorDescription})
+	}
 }
 
 type Error struct {

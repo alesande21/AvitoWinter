@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"AvitoWinter/internal/utils"
 	"fmt"
 	"regexp"
 )
@@ -34,6 +35,49 @@ func NewPurchaseInfo(username, item string, quantity int) (*PurchaseInfo, error)
 }
 
 type TransferInfo struct {
+	senderUUID        string
+	recipientUsername string
+	amount            int
+}
+
+func NewTransferInfo(senderUUID string, recipientUsername string, amount int) (*TransferInfo, error) {
+	ti := &TransferInfo{senderUUID: senderUUID, recipientUsername: recipientUsername, amount: amount}
+	err := ti.validate()
+	if err != nil {
+		return nil, fmt.Errorf("-> ti.validate%v", err)
+	}
+
+	return ti, nil
+}
+
+func (t TransferInfo) SenderUUID() string {
+	return t.senderUUID
+}
+
+func (t TransferInfo) RecipientUsername() string {
+	return t.recipientUsername
+}
+
+func (t TransferInfo) Amount() int {
+	return t.amount
+}
+
+func (t TransferInfo) validate() error {
+	err := utils.Validate(t.senderUUID)
+	if err != nil {
+		return fmt.Errorf("-> utils.Validate%v", err)
+	}
+
+	err = validateIdentifier(t.recipientUsername)
+	if err != nil {
+		return fmt.Errorf("-> validateIdentifier%v", err)
+	}
+
+	if t.Amount() <= 0 {
+		return fmt.Errorf(": сумма не может быть меньше отрицательной или меньше нуля: %d", t.Amount())
+	}
+
+	return nil
 }
 
 type UserCredentials struct {

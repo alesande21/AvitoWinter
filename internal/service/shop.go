@@ -11,6 +11,7 @@ type ShopRepo interface {
 	GetInfoByUUID(ctx context.Context, userUUID string) error
 	PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo) error
 	CheckUser(ctx context.Context, userCredential entity2.UserCredentials) (string, error)
+	PutTransferInfo(ctx context.Context, info entity2.TransferInfo) error
 
 	Ping() error
 }
@@ -28,7 +29,7 @@ func (s *ShopService) GetInfo(ctx context.Context) {
 }
 
 func (s *ShopService) TransferCoin(ctx context.Context, transferInfo entity2.TransferInfo) error {
-
+	s.repo.PutTransferInfo(ctx, transferInfo)
 	return nil
 }
 
