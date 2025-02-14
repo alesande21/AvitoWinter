@@ -146,14 +146,80 @@ func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo
 }
 
 func (s ShopRepo) PutTransferInfo(ctx context.Context, info entity2.TransferInfo) error {
+	sender, err := s.getUserByUseUUID(ctx, info.SenderUUID())
+	if err != nil {
+		return fmt.Errorf("-> s.getUserByUseUUID%v", err)
+	}
+
 	recipient, err := s.getUserByUsername(ctx, info.RecipientUsername())
+	if err != nil {
+		return fmt.Errorf("-> s.getUserByUsername%v", err)
+	}
+
+	if sender.Coins < info.Amount() {
+		return fmt.Errorf(": недостаточно средств для перевода")
+	}
+
+	queryInsert := `
+		INSERT INTO transfers (sender, recipient, amount, date_created)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, sender, recipient, amount, date_created
+	`
+
+	queryUpdate := `
+		WITH 
+		sender_update AS (
+			UPDATE users 
+			SET coins = $1
+			WHERE uuid = $2 
+			RETURNING uuid, coins
+		),
+		recipient_update AS (
+			UPDATE users 
+			SET coins = $3
+			WHERE uuid = $4 
+			RETURNING uuid, coins
+		)
+		SELECT * FROM sender_update, recipient_update;
+	`
+
+	repoTransfer := NewTransfer(sender.UUID, recipient.UUID, info.Amount())
+
+	tx, err := s.dbRepo.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("-> r.dbRepo.BeginTx: не удалось начать транзакцию: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	row := tx.QueryRowContext(ctx, queryInsert, repoTransfer.Sender, repoTransfer.Recipient, repoTransfer.Amount, repoTransfer.DateCreated)
+	err = row.Scan(&repoTransfer.ID, &repoTransfer.Sender, &repoTransfer.Recipient, &repoTransfer.Amount, &repoTransfer.DateCreated)
+	if err != nil {
+		log.Printf("Ошибка выполнения запроса в PutTransferInfo: %v\n", err)
+		return fmt.Errorf("-> row.Scan:%s", err)
+	}
+
+	row = tx.QueryRowContext(ctx, queryUpdate, sender.Coins-repoTransfer.Amount, sender.UUID, recipient.UUID,
+		recipient.Coins+repoTransfer.Amount)
+	err = row.Scan(&sender.UUID, &sender.Coins, &recipient.UUID, &recipient.Coins)
+	if err != nil {
+		log.Printf("Ошибка выполнения запроса в PutTransferInfo: %v\n", err)
+		return fmt.Errorf("-> row.Scan:%s", err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("-> tx.Commit: не удалось завершить транзакцию: %w", err)
+	}
 
 	return nil
 }
 
 func (s ShopRepo) Ping() error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (s ShopRepo) getItemByProductName(ctx context.Context, productName string) (*Item, error) {

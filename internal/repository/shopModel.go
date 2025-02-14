@@ -50,6 +50,10 @@ type Transfer struct {
 	DateCreated time.Time `json:"date_created"`
 }
 
+func NewTransfer(sender uuid.UUID, recipient uuid.UUID, amount int) *Transfer {
+	return &Transfer{Sender: sender, Recipient: recipient, Amount: amount, DateCreated: utils2.GetCurrentTime()}
+}
+
 type Purchase struct {
 	ID          int       `json:"id"`
 	UserUUID    uuid.UUID `json:"user_uuid"`
