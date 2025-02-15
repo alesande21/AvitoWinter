@@ -8,11 +8,10 @@ import (
 )
 
 type ShopRepo interface {
-	GetInfoByUUID(ctx context.Context, userUUID string) error
+	GetInfoByUUID(ctx context.Context, userUUID string) (*entity2.UserInfo, error)
 	PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo) error
 	CheckUser(ctx context.Context, userCredential entity2.UserCredentials) (string, error)
 	PutTransferInfo(ctx context.Context, info entity2.TransferInfo) error
-
 	Ping() error
 }
 
@@ -24,13 +23,13 @@ func NewShopService(repo ShopRepo) *ShopService {
 	return &ShopService{repo: repo}
 }
 
-func (s *ShopService) GetInfo(ctx context.Context) {
+func (s *ShopService) GetInfo(ctx context.Context, userUUID string) (*entity2.UserInfo, error) {
 
+	return s.repo.GetInfoByUUID(ctx, userUUID)
 }
 
 func (s *ShopService) TransferCoin(ctx context.Context, transferInfo entity2.TransferInfo) error {
-	s.repo.PutTransferInfo(ctx, transferInfo)
-	return nil
+	return s.repo.PutTransferInfo(ctx, transferInfo)
 }
 
 func (s *ShopService) PurchaseItem(ctx context.Context, info entity2.PurchaseInfo) error {

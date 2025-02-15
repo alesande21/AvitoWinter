@@ -31,9 +31,24 @@ func NewShopRepo(dbRepo database.DBRepository) *ShopRepo {
 	return &ShopRepo{dbRepo: dbRepo}
 }
 
-func (s ShopRepo) GetInfoByUUID(ctx context.Context, userUUID string) error {
-	//TODO implement me
-	panic("implement me")
+func (s ShopRepo) GetInfoByUUID(ctx context.Context, userUUID string) (*entity2.UserInfo, error) {
+	user, err := s.getUserByUseUUID(ctx, userUUID)
+	if err != nil {
+		return nil, fmt.Errorf("-> s.getUserByUseUUID%v", err)
+	}
+
+	items, err := s.getUserItemsByUserUUID(ctx, user.UUID)
+	if err != nil {
+		return nil, err
+	}
+
+	query := `
+		SELECT id, i.product_name, quantity
+		FROM transfers t
+		LEFT JOIN users u ON t.sender = u.uuid
+		WHERE user_uuid = $1
+	`
+
 }
 
 func (s ShopRepo) CheckUser(ctx context.Context, userCredential entity2.UserCredentials) (string, error) {
@@ -113,7 +128,7 @@ func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo
 		return fmt.Errorf("-> row.Scan:%s", err)
 	}
 
-	userOwnership, err := s.getOwnershipByProduct(ctx, user.UUID, item.UUID)
+	userOwnership, err := s.getItemByProductAndUserUUID(ctx, user.UUID, item.UUID)
 	if err != nil {
 		row = tx.QueryRowContext(ctx, queryInsertOwnership, user.UUID, item.UUID, 1)
 		err = row.Scan(&userOwnership.UserUUID, &userOwnership.ItemUUID, &userOwnership.Quantity)
@@ -276,7 +291,7 @@ func (s ShopRepo) getUserByUseUUID(ctx context.Context, userUUID string) (*User,
 	return user, nil
 }
 
-func (s ShopRepo) getOwnershipByProduct(ctx context.Context, userUUID uuid.UUID, productUUID uuid.UUID) (*Ownership, error) {
+func (s ShopRepo) getItemByProductAndUserUUID(ctx context.Context, userUUID uuid.UUID, productUUID uuid.UUID) (*Ownership, error) {
 	query := `
 		SELECT user_uuid, items_uuid, quantity
 		FROM ownership
@@ -292,4 +307,33 @@ func (s ShopRepo) getOwnershipByProduct(ctx context.Context, userUUID uuid.UUID,
 	}
 
 	return own, nil
+}
+
+func (s ShopRepo) getUserItemsByUserUUID(ctx context.Context, userUUID uuid.UUID) ([]Ownership, error) {
+	query := `
+		SELECT user_uuid, i.product_name, quantity
+		FROM ownership o
+		LEFT JOIN items i ON o.items_uuid = i.uuid
+		WHERE user_uuid = $1
+	`
+
+	rows, err := s.dbRepo.Query(ctx, query, userUUID)
+	if err != nil {
+		log.Printf("Ошибка выполнения запроса: %v\n", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var userItems []Ownership
+	for rows.Next() {
+		var userItem Ownership
+		err = rows.Scan(&userItem.UserUUID, &userItem.ItemUUID)
+		if err != nil {
+			log.Printf("ошибка выполнения: %v\n", err)
+			return nil, err
+		}
+		userItems = append(userItems, userItem)
+	}
+
+	return userItems, nil
 }
