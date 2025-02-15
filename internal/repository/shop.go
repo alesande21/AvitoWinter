@@ -49,6 +49,9 @@ func (s ShopRepo) GetInfoByUUID(ctx context.Context, userUUID string) (*entity2.
 		WHERE user_uuid = $1
 	`
 
+	fmt.Println(query, items)
+
+	return nil, nil
 }
 
 func (s ShopRepo) CheckUser(ctx context.Context, userCredential entity2.UserCredentials) (string, error) {
