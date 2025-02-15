@@ -11,20 +11,85 @@ type Item struct {
 	quantity int
 }
 
+func NewItem(item string, quantity int) *Item {
+	return &Item{
+		item:     item,
+		quantity: quantity,
+	}
+}
+
+func (i *Item) GetItem() string {
+	return i.item
+}
+
+func (i *Item) GetQuantity() int {
+	return i.quantity
+}
+
 type Transfer struct {
 	username string
 	amount   int
 }
 
+func NewTransfer(username string, amount int) *Transfer {
+	return &Transfer{
+		username: username,
+		amount:   amount,
+	}
+}
+
+func (t *Transfer) GetUsername() string {
+	return t.username
+}
+
+func (t *Transfer) GetAmount() int {
+	return t.amount
+}
+
 type UserTransfers struct {
-	received []Transfer
-	send     []Transfer
+	received []*Transfer
+	sent     []*Transfer
+}
+
+func NewUserTransfers(received, sent []*Transfer) *UserTransfers {
+	return &UserTransfers{
+		received: received,
+		sent:     sent,
+	}
+}
+
+func (ut *UserTransfers) GetReceived() []*Transfer {
+	return ut.received
+}
+
+func (ut *UserTransfers) GetSent() []*Transfer {
+	return ut.sent
 }
 
 type UserInfo struct {
 	coins         int
-	items         []Item
-	userTransfers UserTransfers
+	items         []*Item
+	userTransfers *UserTransfers
+}
+
+func NewUserInfo(coins int, items []*Item, userTransfers *UserTransfers) *UserInfo {
+	return &UserInfo{
+		coins:         coins,
+		items:         items,
+		userTransfers: userTransfers,
+	}
+}
+
+func (ui *UserInfo) GetCoins() *int {
+	return &ui.coins
+}
+
+func (ui *UserInfo) GetItems() []*Item {
+	return ui.items
+}
+
+func (ui *UserInfo) GetUserTransfers() *UserTransfers {
+	return ui.userTransfers
 }
 
 type PurchaseInfo struct {

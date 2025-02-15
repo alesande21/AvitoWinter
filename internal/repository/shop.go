@@ -30,31 +30,34 @@ func NewShopRepo(dbRepo database.DBRepository) *ShopRepo {
 	return &ShopRepo{dbRepo: dbRepo}
 }
 
-func (s ShopRepo) GetInfoByUUID(ctx context.Context, username string) (*entity2.UserInfo, error) {
-	user, err := s.getUserByUseUUID(ctx, userUUID)
+func (s ShopRepo) GetInfo(ctx context.Context, username string) (*entity2.UserInfo, error) {
+	user, err := s.getUser(ctx, username)
 	if err != nil {
-		return nil, fmt.Errorf("-> s.getUserByUseUUID%v", err)
+		return nil, fmt.Errorf("-> s.getUser%v", err)
 	}
 
-	items, err := s.getUserItemsByUserUUID(ctx, user.UUID)
+	items, err := s.getUserItems(ctx, username)
 	if err != nil {
 		return nil, err
 	}
 
-	query := `
-		SELECT id, i.product_name, quantity
-		FROM transfers t
-		LEFT JOIN users u ON t.sender = u.uuid
-		WHERE user_uuid = $1
-	`
+	recievedList, err := s.getTransferListFrom(ctx, username)
+	if err != nil {
+		return nil, err
+	}
 
-	fmt.Println(query, items)
+	sentList, err := s.getTransferListTo(ctx, username)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	userInfo := CreateEntityInfo(user.Coins, items, recievedList, sentList)
+
+	return userInfo, nil
 }
 
 func (s ShopRepo) CheckUser(ctx context.Context, userCredential entity2.UserCredentials) (string, error) {
-	repoCredential, err := s.getUserByUsername(ctx, userCredential.Password())
+	repoCredential, err := s.getUser(ctx, userCredential.Password())
 	if err != nil {
 		return "", fmt.Errorf("-> r.dbRepo.QueryRow.Scan: пользователь по идентификатору %s не найден: %w", userCredential.Identifier(), err)
 	}
@@ -100,7 +103,7 @@ func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo
 	}
 
 	//TODO так как есть аутификация возможно это не нужно, хотя нужно для нахождения UUID юзера
-	user, err := s.getUserByUsername(ctx, info.Username())
+	user, err := s.getUser(ctx, info.Username())
 	if err != nil {
 		return fmt.Errorf("-> s.getUserByUsername%v", err)
 	}
@@ -163,12 +166,12 @@ func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo
 }
 
 func (s ShopRepo) PutTransferInfo(ctx context.Context, info entity2.TransferInfo) error {
-	sender, err := s.getUserByUsername(ctx, info.Sender())
+	sender, err := s.getUser(ctx, info.Sender())
 	if err != nil {
 		return fmt.Errorf("-> s.getUserByUseUUID%v", err)
 	}
 
-	recipient, err := s.getUserByUsername(ctx, info.Recipient())
+	recipient, err := s.getUser(ctx, info.Recipient())
 	if err != nil {
 		return fmt.Errorf("-> s.getUserByUsername%v", err)
 	}
@@ -257,7 +260,7 @@ func (s ShopRepo) getItemByProductName(ctx context.Context, productName string) 
 	return item, nil
 }
 
-func (s ShopRepo) getUserByUsername(ctx context.Context, username string) (*User, error) {
+func (s ShopRepo) getUser(ctx context.Context, username string) (*User, error) {
 	query := `
 		SELECT username, password, coins
 		FROM users
@@ -293,25 +296,24 @@ func (s ShopRepo) getOwnershipByUserAndItem(ctx context.Context, user string, it
 	return own, nil
 }
 
-func (s ShopRepo) getUserItemsByUsername(ctx context.Context, username string) ([]Ownership, error) {
+func (s ShopRepo) getUserItems(ctx context.Context, username string) ([]UserItemQuery, error) {
 	query := `
-		SELECT user_uuid, i.product_name, quantity
-		FROM ownership o
-		LEFT JOIN items i ON o.items_uuid = i.uuid
-		WHERE user_uuid = $1
+		SELECT item, quantity
+		FROM ownership
+		WHERE username = $1
 	`
 
-	rows, err := s.dbRepo.Query(ctx, query, userUUID)
+	rows, err := s.dbRepo.Query(ctx, query, username)
 	if err != nil {
 		log.Printf("Ошибка выполнения запроса: %v\n", err)
 		return nil, err
 	}
 	defer rows.Close()
 
-	var userItems []Ownership
+	var userItems []UserItemQuery
 	for rows.Next() {
-		var userItem Ownership
-		err = rows.Scan(&userItem.UserUUID, &userItem.ItemUUID)
+		var userItem UserItemQuery
+		err = rows.Scan(&userItem.Item, &userItem.Quantity)
 		if err != nil {
 			log.Printf("ошибка выполнения: %v\n", err)
 			return nil, err
@@ -320,4 +322,60 @@ func (s ShopRepo) getUserItemsByUsername(ctx context.Context, username string) (
 	}
 
 	return userItems, nil
+}
+
+func (s ShopRepo) getTransferListFrom(ctx context.Context, username string) ([]UserTransferQuery, error) {
+	query := `
+		SELECT sender, amount
+		FROM transfers
+		WHERE recipient = $1
+	`
+
+	rows, err := s.dbRepo.Query(ctx, query, username)
+	if err != nil {
+		log.Printf("Ошибка выполнения запроса: %v\n", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var userTransfers []UserTransferQuery
+	for rows.Next() {
+		var userTransfer UserTransferQuery
+		err = rows.Scan(&userTransfer.Username, &userTransfer.Amount)
+		if err != nil {
+			log.Printf("ошибка выполнения: %v\n", err)
+			return nil, err
+		}
+		userTransfers = append(userTransfers, userTransfer)
+	}
+
+	return userTransfers, nil
+}
+
+func (s ShopRepo) getTransferListTo(ctx context.Context, username string) ([]UserTransferQuery, error) {
+	query := `
+		SELECT recipient, amount
+		FROM transfers
+		WHERE sender = $1
+	`
+
+	rows, err := s.dbRepo.Query(ctx, query, username)
+	if err != nil {
+		log.Printf("Ошибка выполнения запроса: %v\n", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var userTransfers []UserTransferQuery
+	for rows.Next() {
+		var userTransfer UserTransferQuery
+		err = rows.Scan(&userTransfer.Username, &userTransfer.Amount)
+		if err != nil {
+			log.Printf("ошибка выполнения: %v\n", err)
+			return nil, err
+		}
+		userTransfers = append(userTransfers, userTransfer)
+	}
+
+	return userTransfers, nil
 }

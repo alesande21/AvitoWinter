@@ -1,6 +1,7 @@
 package repository
 
 import (
+	entity2 "AvitoWinter/internal/entity"
 	utils2 "AvitoWinter/internal/utils"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
@@ -79,4 +80,35 @@ func NewOwnership(user string, item string, quantity int) *Ownership {
 func (o *Ownership) IncQuantity() int {
 	o.Quantity++
 	return o.Quantity
+}
+
+type UserItemQuery struct {
+	Item     string `json:"item"`
+	Quantity int    `json:"quantity"`
+}
+
+type UserTransferQuery struct {
+	Username string `json:"username"`
+	Amount   int    `json:"amount"`
+}
+
+func CreateEntityInfo(coins int, ownership []UserItemQuery, received []UserTransferQuery, sent []UserTransferQuery) *entity2.UserInfo {
+	items := make([]*entity2.Item, 0, len(ownership))
+	for _, o := range ownership {
+		items = append(items, entity2.NewItem(o.Item, o.Quantity))
+	}
+
+	receivedTransfers := make([]*entity2.Transfer, 0, len(received))
+	for _, r := range received {
+		receivedTransfers = append(receivedTransfers, entity2.NewTransfer(r.Username, r.Amount))
+	}
+
+	sentTransfers := make([]*entity2.Transfer, 0, len(sent))
+	for _, s := range sent {
+		sentTransfers = append(sentTransfers, entity2.NewTransfer(s.Username, s.Amount))
+	}
+
+	userTransfers := entity2.NewUserTransfers(receivedTransfers, sentTransfers)
+
+	return entity2.NewUserInfo(coins, items, userTransfers)
 }
