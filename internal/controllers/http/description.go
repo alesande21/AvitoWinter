@@ -58,14 +58,14 @@ func (u UserServer) PostApiAuth(w http.ResponseWriter, r *http.Request) {
 func (u UserServer) GetApiBuyItem(w http.ResponseWriter, r *http.Request, item string) {
 	var errorDescription string
 
-	userUUID, ok := r.Context().Value("user_value").(string)
-	if !ok || userUUID == "" {
+	username, ok := r.Context().Value("user_value").(string)
+	if !ok || username == "" {
 		errorDescription = "User not authenticated"
 		sendErrorResponse(w, http.StatusUnauthorized, ErrorResponse{Errors: &errorDescription})
 		return
 	}
 
-	purchaseInfo, err := entity2.NewPurchaseInfo(userUUID, item, 1)
+	purchaseInfo, err := entity2.NewPurchaseInfo(username, item, 1)
 	if err != nil {
 		errorDescription = "Не задан предмет покупки."
 		sendErrorResponse(w, http.StatusBadRequest, ErrorResponse{Errors: &errorDescription})
@@ -93,8 +93,8 @@ func (u UserServer) GetApiBuyItem(w http.ResponseWriter, r *http.Request, item s
 func (u UserServer) GetApiInfo(w http.ResponseWriter, r *http.Request) {
 	var errorDescription string
 
-	userUUID, ok := r.Context().Value("user_value").(string)
-	if !ok || userUUID == "" {
+	username, ok := r.Context().Value("user_value").(string)
+	if !ok || username == "" {
 		errorDescription = "User not authenticated"
 		sendErrorResponse(w, http.StatusUnauthorized, ErrorResponse{Errors: &errorDescription})
 		return
@@ -104,8 +104,8 @@ func (u UserServer) GetApiInfo(w http.ResponseWriter, r *http.Request) {
 func (u UserServer) PostApiSendCoin(w http.ResponseWriter, r *http.Request) {
 	var errorDescription string
 
-	userUUID, ok := r.Context().Value("user_value").(string)
-	if !ok || userUUID == "" {
+	username, ok := r.Context().Value("user_value").(string)
+	if !ok || username == "" {
 		errorDescription = "User not authenticated"
 		sendErrorResponse(w, http.StatusUnauthorized, ErrorResponse{Errors: &errorDescription})
 		return
@@ -120,7 +120,7 @@ func (u UserServer) PostApiSendCoin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transferInfo, err := entity2.NewTransferInfo(userUUID, sendRequest.ToUser, sendRequest.Amount)
+	transferInfo, err := entity2.NewTransferInfo(username, sendRequest.ToUser, sendRequest.Amount)
 	if err != nil {
 		log2.Errorf("PostApiSendCoin-> json.NewDecoder: неверный формат для регистрационных данных пользователя: логин и пароль: %s", err.Error())
 		errorDescription = "Неверный формат для трансфера коинов."

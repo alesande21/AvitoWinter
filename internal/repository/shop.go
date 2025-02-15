@@ -5,7 +5,6 @@ import (
 	entity2 "AvitoWinter/internal/entity"
 	"context"
 	"fmt"
-	"github.com/google/uuid"
 	"log"
 )
 
@@ -31,7 +30,7 @@ func NewShopRepo(dbRepo database.DBRepository) *ShopRepo {
 	return &ShopRepo{dbRepo: dbRepo}
 }
 
-func (s ShopRepo) GetInfoByUUID(ctx context.Context, userUUID string) (*entity2.UserInfo, error) {
+func (s ShopRepo) GetInfoByUUID(ctx context.Context, username string) (*entity2.UserInfo, error) {
 	user, err := s.getUserByUseUUID(ctx, userUUID)
 	if err != nil {
 		return nil, fmt.Errorf("-> s.getUserByUseUUID%v", err)
@@ -65,33 +64,33 @@ func (s ShopRepo) CheckUser(ctx context.Context, userCredential entity2.UserCred
 		return "", fmt.Errorf("-> repoCredential.CheckPassword%v", err)
 	}
 
-	return repoCredential.UUID.String(), nil
+	return repoCredential.Username, nil
 }
 
 func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo) error {
 	queryInsertPurchase := `
-		INSERT INTO purchases (user_uuid, items_uuid, quantity, total_price, date_created)
+		INSERT INTO purchases (username, item, quantity, total_price, date_created)
 		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id, user_uuid, items_uuid, quantity, total_price, date_created
+		RETURNING id, username, item, quantity, total_price, date_created
 	`
 
 	queryInsertOwnership := `
-		INSERT INTO purchases (user_uuid, items_uuid, quantity)
+		INSERT INTO ownership (username, item, quantity)
 		VALUES ($1, $2, $3)
-		RETURNING user_uuid, items_uuid, quantity
+		RETURNING username, item, quantity
 	`
 
 	queryUpdateOwnership := `
 		UPDATE ownership
 		SET quantity = $3
-		WHERE user_uuid = $1 AND items_uuid = $2
-		RETURNING user_uuid, items_uuid, quantity
+		WHERE username = $1 AND item = $2
+		RETURNING username, item, quantity
 	`
 
 	queryUpdateCoins := `
 		UPDATE users
 		SET coins = $2
-		WHERE user_uuid = $1
+		WHERE username = $1
 		RETURNING coins
 	`
 
@@ -110,7 +109,7 @@ func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo
 		return fmt.Errorf(": недостаточно монет на счете. Монет - %d, необходимо - %d", user.Coins, item.Price)
 	}
 
-	repoPurchase := NewPurchase(user.UUID, item.UUID, info.Quantity(), item.Price)
+	repoPurchase := NewPurchase(user.Username, item.ProductName, info.Quantity(), item.Price)
 
 	tx, err := s.dbRepo.BeginTx(ctx, nil)
 	if err != nil {
@@ -122,33 +121,33 @@ func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo
 		}
 	}()
 
-	row := tx.QueryRowContext(ctx, queryInsertPurchase, repoPurchase.UserUUID, repoPurchase.ItemUUID,
+	row := tx.QueryRowContext(ctx, queryInsertPurchase, repoPurchase.User, repoPurchase.Item,
 		repoPurchase.Quantity, repoPurchase.TotalPrice, repoPurchase.DateCreated)
-	err = row.Scan(&repoPurchase.ID, &repoPurchase.UserUUID, &repoPurchase.ItemUUID, &repoPurchase.Quantity,
+	err = row.Scan(&repoPurchase.ID, &repoPurchase.User, &repoPurchase.Item, &repoPurchase.Quantity,
 		&repoPurchase.TotalPrice, &repoPurchase.DateCreated)
 	if err != nil {
 		log.Printf("Ошибка выполнения запроса в PutPurchaseInfo: %v\n", err)
 		return fmt.Errorf("-> row.Scan:%s", err)
 	}
 
-	userOwnership, err := s.getItemByProductAndUserUUID(ctx, user.UUID, item.UUID)
+	userOwnership, err := s.getOwnershipByUserAndItem(ctx, user.Username, item.ProductName)
 	if err != nil {
-		row = tx.QueryRowContext(ctx, queryInsertOwnership, user.UUID, item.UUID, 1)
-		err = row.Scan(&userOwnership.UserUUID, &userOwnership.ItemUUID, &userOwnership.Quantity)
+		row = tx.QueryRowContext(ctx, queryInsertOwnership, user.Username, item.ProductName, 1)
+		err = row.Scan(&userOwnership.User, &userOwnership.Item, &userOwnership.Quantity)
 		if err != nil {
 			log.Printf("Ошибка выполнения запроса в PutPurchaseInfo: %v\n", err)
 			return fmt.Errorf("-> row.Scan:%s", err)
 		}
 	} else {
-		row = tx.QueryRowContext(ctx, queryUpdateOwnership, userOwnership.UserUUID, userOwnership.ItemUUID, userOwnership.IncQuantity())
-		err = row.Scan(&userOwnership.UserUUID, &userOwnership.ItemUUID, &userOwnership.Quantity)
+		row = tx.QueryRowContext(ctx, queryUpdateOwnership, userOwnership.User, userOwnership.Item, userOwnership.IncQuantity())
+		err = row.Scan(&userOwnership.User, &userOwnership.Item, &userOwnership.Quantity)
 		if err != nil {
 			log.Printf("Ошибка выполнения запроса в PutPurchaseInfo: %v\n", err)
 			return fmt.Errorf("-> row.Scan:%s", err)
 		}
 	}
 
-	row = tx.QueryRowContext(ctx, queryUpdateCoins, user.UUID, user.Coins-item.Price)
+	row = tx.QueryRowContext(ctx, queryUpdateCoins, user.Username, user.Coins-item.Price)
 	err = row.Scan(&user.Coins)
 	if err != nil {
 		log.Printf("Ошибка выполнения запроса в PutPurchaseInfo: %v\n", err)
@@ -164,12 +163,12 @@ func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo
 }
 
 func (s ShopRepo) PutTransferInfo(ctx context.Context, info entity2.TransferInfo) error {
-	sender, err := s.getUserByUseUUID(ctx, info.SenderUUID())
+	sender, err := s.getUserByUsername(ctx, info.Sender())
 	if err != nil {
 		return fmt.Errorf("-> s.getUserByUseUUID%v", err)
 	}
 
-	recipient, err := s.getUserByUsername(ctx, info.RecipientUsername())
+	recipient, err := s.getUserByUsername(ctx, info.Recipient())
 	if err != nil {
 		return fmt.Errorf("-> s.getUserByUsername%v", err)
 	}
@@ -189,19 +188,19 @@ func (s ShopRepo) PutTransferInfo(ctx context.Context, info entity2.TransferInfo
 		sender_update AS (
 			UPDATE users 
 			SET coins = $1
-			WHERE uuid = $2 
-			RETURNING uuid, coins
+			WHERE username = $2 
+			RETURNING username, coins
 		),
 		recipient_update AS (
 			UPDATE users 
 			SET coins = $3
-			WHERE uuid = $4 
-			RETURNING uuid, coins
+			WHERE username = $4 
+			RETURNING username, coins
 		)
 		SELECT * FROM sender_update, recipient_update;
 	`
 
-	repoTransfer := NewTransfer(sender.UUID, recipient.UUID, info.Amount())
+	repoTransfer := NewTransfer(sender.Username, recipient.Username, info.Amount())
 
 	tx, err := s.dbRepo.BeginTx(ctx, nil)
 	if err != nil {
@@ -220,9 +219,9 @@ func (s ShopRepo) PutTransferInfo(ctx context.Context, info entity2.TransferInfo
 		return fmt.Errorf("-> row.Scan:%s", err)
 	}
 
-	row = tx.QueryRowContext(ctx, queryUpdate, sender.Coins-repoTransfer.Amount, sender.UUID, recipient.UUID,
+	row = tx.QueryRowContext(ctx, queryUpdate, sender.Coins-repoTransfer.Amount, sender.Username, recipient.Username,
 		recipient.Coins+repoTransfer.Amount)
-	err = row.Scan(&sender.UUID, &sender.Coins, &recipient.UUID, &recipient.Coins)
+	err = row.Scan(&sender.Username, &sender.Coins, &recipient.Username, &recipient.Coins)
 	if err != nil {
 		log.Printf("Ошибка выполнения запроса в PutTransferInfo: %v\n", err)
 		return fmt.Errorf("-> row.Scan:%s", err)
@@ -242,7 +241,7 @@ func (s ShopRepo) Ping() error {
 
 func (s ShopRepo) getItemByProductName(ctx context.Context, productName string) (*Item, error) {
 	query := `
-		SELECT uuid, product_name, price
+		SELECT product_name, price
 		FROM items
 		WHERE product_name = $1
 	`
@@ -250,7 +249,7 @@ func (s ShopRepo) getItemByProductName(ctx context.Context, productName string) 
 	var item *Item
 
 	row := s.dbRepo.QueryRow(ctx, query, productName)
-	err := row.Scan(&item.UUID, &item.ProductName, &item.Price)
+	err := row.Scan(&item.ProductName, &item.Price)
 	if err != nil {
 		return nil, fmt.Errorf("-> r.dbRepo.QueryRow.Scan: продукт по productName %s не найден: %w", productName, err)
 	}
@@ -260,7 +259,7 @@ func (s ShopRepo) getItemByProductName(ctx context.Context, productName string) 
 
 func (s ShopRepo) getUserByUsername(ctx context.Context, username string) (*User, error) {
 	query := `
-		SELECT uuid, username, password, coins
+		SELECT username, password, coins
 		FROM users
 		WHERE username = $1
 	`
@@ -268,7 +267,7 @@ func (s ShopRepo) getUserByUsername(ctx context.Context, username string) (*User
 	var user *User
 
 	row := s.dbRepo.QueryRow(ctx, query, username)
-	err := row.Scan(&user.UUID, &user.Username, &user.Password, &user.Coins)
+	err := row.Scan(&user.Username, &user.Password, &user.Coins)
 	if err != nil {
 		return nil, fmt.Errorf("-> r.dbRepo.QueryRow.Scan: пользователь по username %s не найден: %w", username, err)
 	}
@@ -276,43 +275,25 @@ func (s ShopRepo) getUserByUsername(ctx context.Context, username string) (*User
 	return user, nil
 }
 
-func (s ShopRepo) getUserByUseUUID(ctx context.Context, userUUID string) (*User, error) {
+func (s ShopRepo) getOwnershipByUserAndItem(ctx context.Context, user string, item string) (*Ownership, error) {
 	query := `
-		SELECT uuid, username, password, coins
-		FROM users
-		WHERE uuid = $1
-	`
-
-	var user *User
-
-	row := s.dbRepo.QueryRow(ctx, query, userUUID)
-	err := row.Scan(&user.UUID, &user.Username, &user.Password, &user.Coins)
-	if err != nil {
-		return nil, fmt.Errorf("-> r.dbRepo.QueryRow.Scan: пользователь по userUUID %s не найден: %w", userUUID, err)
-	}
-
-	return user, nil
-}
-
-func (s ShopRepo) getItemByProductAndUserUUID(ctx context.Context, userUUID uuid.UUID, productUUID uuid.UUID) (*Ownership, error) {
-	query := `
-		SELECT user_uuid, items_uuid, quantity
+		SELECT username, item, quantity
 		FROM ownership
-		WHERE user_uuid = $1 AND items_uuid
+		WHERE username = $1 AND item = $2
 	`
 
 	var own *Ownership
 
-	row := s.dbRepo.QueryRow(ctx, query, userUUID, productUUID)
-	err := row.Scan(&own.UserUUID, &own.ItemUUID, &own.Quantity)
+	row := s.dbRepo.QueryRow(ctx, query, user, item)
+	err := row.Scan(&own.User, &own.Item, &own.Quantity)
 	if err != nil {
-		return nil, fmt.Errorf("-> r.dbRepo.QueryRow.Scan: владение по userUUID - %s и productUUID - %s: %w", own.UserUUID, own.ItemUUID, err)
+		return nil, fmt.Errorf("-> r.dbRepo.QueryRow.Scan: владение по user - %s и product - %s: %w", own.User, own.Item, err)
 	}
 
 	return own, nil
 }
 
-func (s ShopRepo) getUserItemsByUserUUID(ctx context.Context, userUUID uuid.UUID) ([]Ownership, error) {
+func (s ShopRepo) getUserItemsByUsername(ctx context.Context, username string) ([]Ownership, error) {
 	query := `
 		SELECT user_uuid, i.product_name, quantity
 		FROM ownership o

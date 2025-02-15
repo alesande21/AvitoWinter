@@ -53,13 +53,13 @@ func NewPurchaseInfo(username, item string, quantity int) (*PurchaseInfo, error)
 }
 
 type TransferInfo struct {
-	senderUUID        string
-	recipientUsername string
-	amount            int
+	sender    string
+	recipient string
+	amount    int
 }
 
 func NewTransferInfo(senderUUID string, recipientUsername string, amount int) (*TransferInfo, error) {
-	ti := &TransferInfo{senderUUID: senderUUID, recipientUsername: recipientUsername, amount: amount}
+	ti := &TransferInfo{sender: senderUUID, recipient: recipientUsername, amount: amount}
 	err := ti.validate()
 	if err != nil {
 		return nil, fmt.Errorf("-> ti.validate%v", err)
@@ -68,12 +68,12 @@ func NewTransferInfo(senderUUID string, recipientUsername string, amount int) (*
 	return ti, nil
 }
 
-func (t TransferInfo) SenderUUID() string {
-	return t.senderUUID
+func (t TransferInfo) Sender() string {
+	return t.sender
 }
 
-func (t TransferInfo) RecipientUsername() string {
-	return t.recipientUsername
+func (t TransferInfo) Recipient() string {
+	return t.recipient
 }
 
 func (t TransferInfo) Amount() int {
@@ -81,12 +81,12 @@ func (t TransferInfo) Amount() int {
 }
 
 func (t TransferInfo) validate() error {
-	err := utils.Validate(t.senderUUID)
+	err := utils.Validate(t.sender)
 	if err != nil {
 		return fmt.Errorf("-> utils.Validate%v", err)
 	}
 
-	err = validateIdentifier(t.recipientUsername)
+	err = validateIdentifier(t.recipient)
 	if err != nil {
 		return fmt.Errorf("-> validateIdentifier%v", err)
 	}
