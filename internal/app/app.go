@@ -1,7 +1,6 @@
 package app
 
 import (
-	cache2 "AvitoWinter/internal/cache"
 	"AvitoWinter/internal/colorAttribute"
 	config2 "AvitoWinter/internal/config"
 	http3 "AvitoWinter/internal/controllers/http"
@@ -49,8 +48,8 @@ func RunUser() error {
 		}
 	}()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	//ctx, cancel := context.WithCancel(context.Background())
+	//defer cancel()
 
 	// Инициализация репозитория
 	log2.Info("Инициализация репозитория...")
@@ -60,32 +59,19 @@ func RunUser() error {
 		return fmt.Errorf("-> database2.CreatePostgresRepository%w", err)
 	}
 
-	log2.Info("Загрузка конфига для подключения к кафке...")
-	configKafka, err := kafka2.GetConfigProducer()
-	if err != nil {
-		return fmt.Errorf("-> kafka2.GetConfigProducer%w", err)
-	}
-
-	log2.Info("Подключение к кафке...")
-	userPlacer, err := kafka2.NewPlacer(configKafka, "user_placer")
-	if err != nil {
-		return fmt.Errorf("->  kafka2.NewPlacer%w", err)
-	}
-	defer userPlacer.Close()
-
 	// Инициализация кеша
-	log2.Info("Инициализация кеш клиента...")
-	redisClient, err := cache2.NewRedisClientAdapter(ctx)
-	if err != nil {
-		return fmt.Errorf("->  cache2.NewRedisClientAdapterr%v", err)
-	}
+	//log2.Info("Инициализация кеш клиента...")
+	//redisClient, err := cache2.NewRedisClientAdapter(ctx)
+	//if err != nil {
+	//	return fmt.Errorf("->  cache2.NewRedisClientAdapterr%v", err)
+	//}
 	//cacheClient := cache2.NewCacheClient(redisClient)
 
 	// Инициализация сервиса
 	log2.Info("Инициализация сервиса...")
-	userRepo := repository2.NewUserRepo(postgresRep)
-	repoWithCache := repository2.NewUserRepoWithCache(userRepo, redisClient)
-	userService := service2.NewUserService(repoWithCache, userPlacer)
+	shopRepo := repository2.NewShopRepo(postgresRep)
+	//repoWithCache := repository2.NewUserRepoWithCache(shopRepo, redisClient)
+	shopService := service2.NewShopService(shopRepo)
 
 	log2.Info("Загрузка настроек для сервера...")
 	var serverAddress http3.ServerAddress
@@ -101,7 +87,7 @@ func RunUser() error {
 	}
 	swagger.Servers = nil
 
-	userServer := http3.NewUserServer(userService)
+	userServer := http3.NewUserServer(shopService)
 
 	r := mux.NewRouter()
 
@@ -131,7 +117,7 @@ func RunUser() error {
 		log2.Infof("Приложение прерывается: %s", sig)
 		ctxShutDown, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
 
-		cancel()
+		//cancel()
 
 		defer cancelShutdown()
 		err := s.Shutdown(ctxShutDown)

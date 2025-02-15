@@ -123,16 +123,6 @@ type TransferInfo struct {
 	amount    int
 }
 
-func NewTransferInfo(senderUUID string, recipientUsername string, amount int) (*TransferInfo, error) {
-	ti := &TransferInfo{sender: senderUUID, recipient: recipientUsername, amount: amount}
-	err := ti.validate()
-	if err != nil {
-		return nil, fmt.Errorf("-> ti.validate%v", err)
-	}
-
-	return ti, nil
-}
-
 func (t TransferInfo) Sender() string {
 	return t.sender
 }
@@ -145,7 +135,19 @@ func (t TransferInfo) Amount() int {
 	return t.amount
 }
 
-func (t TransferInfo) validate() error {
+func NewTransferInfo(sender string, recipient string, amount int) (*TransferInfo, error) {
+	ti := &TransferInfo{sender: sender, recipient: recipient, amount: amount}
+	err := ti.
+	if err != nil {
+		return nil, fmt.Errorf("-> ti.validate%v", err)
+	}
+
+	return ti, nil
+}
+
+
+
+func (t *TransferInfo) validate() error {
 	err := utils.Validate(t.sender)
 	if err != nil {
 		return fmt.Errorf("-> utils.Validate%v", err)
@@ -156,8 +158,8 @@ func (t TransferInfo) validate() error {
 		return fmt.Errorf("-> validateIdentifier%v", err)
 	}
 
-	if t.Amount() <= 0 {
-		return fmt.Errorf(": сумма не может быть меньше отрицательной или меньше нуля: %d", t.Amount())
+	if t.amount <= 0 {
+		return fmt.Errorf(": сумма не может быть меньше отрицательной или меньше нуля: %d", ti.amount)
 	}
 
 	return nil

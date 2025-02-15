@@ -8,7 +8,7 @@ import (
 )
 
 type ShopRepo interface {
-	GetInfoByUUID(ctx context.Context, username string) (*entity2.UserInfo, error)
+	GetInfo(ctx context.Context, username string) (*entity2.UserInfo, error)
 	PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo) error
 	CheckUser(ctx context.Context, userCredential entity2.UserCredentials) (string, error)
 	PutTransferInfo(ctx context.Context, info entity2.TransferInfo) error
@@ -24,8 +24,7 @@ func NewShopService(repo ShopRepo) *ShopService {
 }
 
 func (s *ShopService) GetInfo(ctx context.Context, username string) (*entity2.UserInfo, error) {
-
-	return s.repo.GetInfoByUUID(ctx, username)
+	return s.repo.GetInfo(ctx, username)
 }
 
 func (s *ShopService) TransferCoin(ctx context.Context, transferInfo entity2.TransferInfo) error {
@@ -37,12 +36,12 @@ func (s *ShopService) PurchaseItem(ctx context.Context, info entity2.PurchaseInf
 }
 
 func (s *ShopService) AuthenticationUser(ctx context.Context, userCredential entity2.UserCredentials) (string, error) {
-	UUID, err := s.repo.CheckUser(ctx, userCredential)
+	username, err := s.repo.CheckUser(ctx, userCredential)
 	if err != nil {
 		return "", fmt.Errorf("-> s.Repo.CheckUser%v", err)
 	}
 
-	tokenString, err := auth2.GenerateJWT(UUID)
+	tokenString, err := auth2.GenerateJWT(username)
 	if err != nil {
 		return "", fmt.Errorf("-> auth2.GenerateJWT%v", err)
 	}
