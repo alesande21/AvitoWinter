@@ -21,6 +21,7 @@ func NewUserServer(service *service.ShopService) *UserServer {
 }
 
 func (u UserServer) PostApiAuth(w http.ResponseWriter, r *http.Request) {
+	log2.Infof("PostApiAuth")
 	var errorDescription string
 	var authRequest AuthRequest
 	if err := json.NewDecoder(r.Body).Decode(&authRequest); err != nil {

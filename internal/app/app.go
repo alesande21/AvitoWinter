@@ -88,16 +88,23 @@ func RunApp() error {
 	swagger.Servers = nil
 
 	userServer := http3.NewUserServer(shopService)
-
 	r := mux.NewRouter()
+	r.Use(middleware.OapiRequestValidator(swagger))
 
-	r.Use(middleware.OapiRequestValidator(swagger), http3.AuthMiddleware)
-	http3.HandlerFromMux(userServer, r)
+	handler := http3.HandlerWithOptions(userServer, http3.GorillaServerOptions{
+		BaseRouter: r,
+		BaseURL:    "",
+	})
 
 	s := &http.Server{
 		Addr:    serverAddress.EnvAddress,
-		Handler: r,
+		Handler: handler,
 	}
+
+	//s := &http.Server{
+	//	Addr:    serverAddress.EnvAddress,
+	//	Handler: r,
+	//}
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)

@@ -19,4 +19,10 @@ init:
 tidy:
 	go mod tidy
 
+up:
+	docker compose -f docker-compose.yaml up --build
+
+down:
+	docker compose down -v
+
 .PHONY: all, install, ver, genUserService

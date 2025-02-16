@@ -3,18 +3,14 @@ package http
 import (
 	auth2 "AvitoWinter/internal/auth"
 	"context"
+	"github.com/gorilla/mux"
+	log2 "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 )
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// исключаем аутификацию
-		if r.URL.Path == "/api/auth" {
-			next.ServeHTTP(w, r)
-			return
-		}
-
 		var errorDescription string
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
@@ -73,3 +69,35 @@ func AuthMiddleware(next http.Handler) http.Handler {
 //		}
 //	})
 //}
+
+// HandlerWithOptions creates http.Handler with additional options
+func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.Handler {
+	log2.Infof("HandlerWithOptionsHandlerWithOptionsHandlerWithOptionsHandlerWithOptionsHandlerWithOptions")
+	r := options.BaseRouter
+
+	if r == nil {
+		r = mux.NewRouter()
+	}
+	if options.ErrorHandlerFunc == nil {
+		options.ErrorHandlerFunc = func(w http.ResponseWriter, r *http.Request, err error) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+	}
+	wrapper := ServerInterfaceWrapper{
+		Handler:            si,
+		HandlerMiddlewares: options.Middlewares,
+		ErrorHandlerFunc:   options.ErrorHandlerFunc,
+	}
+
+	public := r.NewRoute().Subrouter()
+	protected := r.NewRoute().Subrouter()
+
+	public.HandleFunc(options.BaseURL+"/api/auth", wrapper.PostApiAuth).Methods("POST")
+
+	protected.Use(AuthMiddleware)
+	protected.HandleFunc(options.BaseURL+"/api/buy/{item}", wrapper.GetApiBuyItem).Methods("GET")
+	protected.HandleFunc(options.BaseURL+"/api/info", wrapper.GetApiInfo).Methods("GET")
+	protected.HandleFunc(options.BaseURL+"/api/sendCoin", wrapper.PostApiSendCoin).Methods("POST")
+
+	return r
+}

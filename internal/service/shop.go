@@ -11,7 +11,6 @@ type ShopRepo interface {
 	PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo) error
 	CheckUser(ctx context.Context, userCredential entity2.UserCredentials) (string, error)
 	PutTransferInfo(ctx context.Context, info entity2.TransferInfo) error
-	Ping() error
 }
 
 type ShopService struct {

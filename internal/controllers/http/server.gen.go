@@ -300,34 +300,34 @@ func HandlerFromMuxWithBaseURL(si ServerInterface, r *mux.Router, baseURL string
 	})
 }
 
-// HandlerWithOptions creates http.Handler with additional options
-func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.Handler {
-	r := options.BaseRouter
-
-	if r == nil {
-		r = mux.NewRouter()
-	}
-	if options.ErrorHandlerFunc == nil {
-		options.ErrorHandlerFunc = func(w http.ResponseWriter, r *http.Request, err error) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
-	}
-	wrapper := ServerInterfaceWrapper{
-		Handler:            si,
-		HandlerMiddlewares: options.Middlewares,
-		ErrorHandlerFunc:   options.ErrorHandlerFunc,
-	}
-
-	r.HandleFunc(options.BaseURL+"/api/auth", wrapper.PostApiAuth).Methods("POST")
-
-	r.HandleFunc(options.BaseURL+"/api/buy/{item}", wrapper.GetApiBuyItem).Methods("GET")
-
-	r.HandleFunc(options.BaseURL+"/api/info", wrapper.GetApiInfo).Methods("GET")
-
-	r.HandleFunc(options.BaseURL+"/api/sendCoin", wrapper.PostApiSendCoin).Methods("POST")
-
-	return r
-}
+//// HandlerWithOptions creates http.Handler with additional options
+//func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.Handler {
+//	r := options.BaseRouter
+//
+//	if r == nil {
+//		r = mux.NewRouter()
+//	}
+//	if options.ErrorHandlerFunc == nil {
+//		options.ErrorHandlerFunc = func(w http.ResponseWriter, r *http.Request, err error) {
+//			http.Error(w, err.Error(), http.StatusBadRequest)
+//		}
+//	}
+//	wrapper := ServerInterfaceWrapper{
+//		Handler:            si,
+//		HandlerMiddlewares: options.Middlewares,
+//		ErrorHandlerFunc:   options.ErrorHandlerFunc,
+//	}
+//
+//	r.HandleFunc(options.BaseURL+"/api/auth", wrapper.PostApiAuth).Methods("POST")
+//
+//	r.HandleFunc(options.BaseURL+"/api/buy/{item}", wrapper.GetApiBuyItem).Methods("GET")
+//
+//	r.HandleFunc(options.BaseURL+"/api/info", wrapper.GetApiInfo).Methods("GET")
+//
+//	r.HandleFunc(options.BaseURL+"/api/sendCoin", wrapper.PostApiSendCoin).Methods("POST")
+//
+//	return r
+//}
 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{

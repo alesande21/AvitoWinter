@@ -202,7 +202,6 @@ func (ru UserCredentials) validate() error {
 }
 
 func validateIdentifier(identifier string) error {
-	// от 4 до 50 символов: буквы, цифры, точки, дефисы и симовлы подчеркивания
 	identifierRegex := `^[a-zA-Z0-9._-]{4,50}$`
 
 	matched, err := regexp.MatchString(identifierRegex, identifier)
@@ -218,7 +217,6 @@ func validateIdentifier(identifier string) error {
 }
 
 func validatePassword(password string) error {
-	// от 8 до 64 символов: хотя бы одну букву, одну цифру и один спецсимвол
 
 	passwordRegex := `^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[a-zA-Z\d@$!%*?&]{8,64}$`
 
