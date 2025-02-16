@@ -1,15 +1,21 @@
 package http
 
 import (
+	auth2 "AvitoWinter/internal/auth"
 	"context"
 	"net/http"
 	"strings"
 )
 
-func (u UserServer) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// исключаем аутификацию
+		if r.URL.Path == "/api/auth" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		var errorDescription string
-		// Извлечение токена из заголовка Authorization
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
 			errorDescription = "Требуется авторизация."
@@ -17,7 +23,6 @@ func (u UserServer) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// Проверка формата заголовка (Bearer <token>)
 		tokenParts := strings.Split(authHeader, " ")
 		if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
 			errorDescription = "Неверный формат токена."
@@ -27,20 +32,17 @@ func (u UserServer) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		tokenString := tokenParts[1]
 
-		// Проверка валидности токена
-		claims, err := u.service.ValidateToken(r.Context(), tokenString)
+		claims, err := auth2.ValidateToken(tokenString)
 		if err != nil {
 			errorDescription = "Невалидный токен."
 			sendErrorResponse(w, http.StatusUnauthorized, ErrorResponse{Errors: &errorDescription})
 			return
 		}
 
-		// Добавляем UUID в контекс
 		ctx := context.WithValue(r.Context(), "user_uuid", claims.UserUUID)
 
-		// Если токен валиден, передаем управление следующему обработчику
 		next.ServeHTTP(w, r.WithContext(ctx))
-	}
+	})
 }
 
 //func middleware(next http.Handler) http.Handler {

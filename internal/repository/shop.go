@@ -166,7 +166,7 @@ func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo
 }
 
 func (s ShopRepo) PutTransferInfo(ctx context.Context, info entity2.TransferInfo) error {
-	sender, err := s.getUser(ctx, info.)
+	sender, err := s.getUser(ctx, info.Sender())
 	if err != nil {
 		return fmt.Errorf("-> s.getUserByUseUUID%v", err)
 	}

@@ -137,7 +137,7 @@ func (t TransferInfo) Amount() int {
 
 func NewTransferInfo(sender string, recipient string, amount int) (*TransferInfo, error) {
 	ti := &TransferInfo{sender: sender, recipient: recipient, amount: amount}
-	err := ti.
+	err := ti.validate()
 	if err != nil {
 		return nil, fmt.Errorf("-> ti.validate%v", err)
 	}
@@ -145,9 +145,7 @@ func NewTransferInfo(sender string, recipient string, amount int) (*TransferInfo
 	return ti, nil
 }
 
-
-
-func (t *TransferInfo) validate() error {
+func (t TransferInfo) validate() error {
 	err := utils.Validate(t.sender)
 	if err != nil {
 		return fmt.Errorf("-> utils.Validate%v", err)
@@ -159,7 +157,7 @@ func (t *TransferInfo) validate() error {
 	}
 
 	if t.amount <= 0 {
-		return fmt.Errorf(": сумма не может быть меньше отрицательной или меньше нуля: %d", ti.amount)
+		return fmt.Errorf(": сумма не может быть меньше отрицательной или меньше нуля: %d", t.amount)
 	}
 
 	return nil

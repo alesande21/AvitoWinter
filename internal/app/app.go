@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-func RunUser() error {
+func RunApp() error {
 
 	// Настройка логера
 	SetLevel("debug", "console")
@@ -91,7 +91,7 @@ func RunUser() error {
 
 	r := mux.NewRouter()
 
-	r.Use(middleware.OapiRequestValidator(swagger))
+	r.Use(middleware.OapiRequestValidator(swagger), http3.AuthMiddleware)
 	http3.HandlerFromMux(userServer, r)
 
 	s := &http.Server{

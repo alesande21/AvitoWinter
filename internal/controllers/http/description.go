@@ -1,6 +1,7 @@
 package http
 
 import (
+	auth2 "AvitoWinter/internal/auth"
 	entity2 "AvitoWinter/internal/entity"
 	"AvitoWinter/internal/service"
 	"encoding/json"
@@ -36,11 +37,17 @@ func (u UserServer) PostApiAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenString, err := u.service.AuthenticationUser(r.Context(), *newUserCredentials)
+	username, err := u.service.GetUserByCredentials(r.Context(), *newUserCredentials)
 	if err != nil {
 		errorDescription = "Аутификация не пройдена."
 		sendErrorResponse(w, http.StatusBadRequest, ErrorResponse{Errors: &errorDescription})
 		return
+	}
+
+	tokenString, err := auth2.GenerateJWT(username)
+	if err != nil {
+		errorDescription = "Аутификация не пройдена."
+		sendErrorResponse(w, http.StatusBadRequest, ErrorResponse{Errors: &errorDescription})
 	}
 
 	var authResponse AuthResponse
