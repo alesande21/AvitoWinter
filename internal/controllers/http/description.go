@@ -21,7 +21,6 @@ func NewUserServer(service *service.ShopService) *UserServer {
 }
 
 func (u UserServer) PostApiAuth(w http.ResponseWriter, r *http.Request) {
-	log2.Infof("PostApiAuth")
 	var errorDescription string
 	var authRequest AuthRequest
 	if err := json.NewDecoder(r.Body).Decode(&authRequest); err != nil {
@@ -38,9 +37,9 @@ func (u UserServer) PostApiAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username, err := u.service.GetUserByCredentials(r.Context(), *newUserCredentials)
+	username, err := u.service.CreateUser(r.Context(), newUserCredentials)
 	if err != nil {
-		errorDescription = "Аутификация не пройдена."
+		errorDescription = "Пользователь не создан."
 		sendErrorResponse(w, http.StatusBadRequest, ErrorResponse{Errors: &errorDescription})
 		return
 	}
@@ -49,6 +48,7 @@ func (u UserServer) PostApiAuth(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorDescription = "Аутификация не пройдена."
 		sendErrorResponse(w, http.StatusBadRequest, ErrorResponse{Errors: &errorDescription})
+		return
 	}
 
 	var authResponse AuthResponse
@@ -66,7 +66,9 @@ func (u UserServer) PostApiAuth(w http.ResponseWriter, r *http.Request) {
 func (u UserServer) GetApiBuyItem(w http.ResponseWriter, r *http.Request, item string) {
 	var errorDescription string
 
-	username, ok := r.Context().Value("user_value").(string)
+	username, ok := r.Context().Value("username").(string)
+	log2.Infof("username создан %s %v", username, ok)
+
 	if !ok || username == "" {
 		errorDescription = "User not authenticated"
 		sendErrorResponse(w, http.StatusUnauthorized, ErrorResponse{Errors: &errorDescription})
@@ -101,7 +103,7 @@ func (u UserServer) GetApiBuyItem(w http.ResponseWriter, r *http.Request, item s
 func (u UserServer) GetApiInfo(w http.ResponseWriter, r *http.Request) {
 	var errorDescription string
 
-	username, ok := r.Context().Value("user_value").(string)
+	username, ok := r.Context().Value("username").(string)
 	if !ok || username == "" {
 		errorDescription = "User not authenticated"
 		sendErrorResponse(w, http.StatusUnauthorized, ErrorResponse{Errors: &errorDescription})
@@ -112,7 +114,7 @@ func (u UserServer) GetApiInfo(w http.ResponseWriter, r *http.Request) {
 func (u UserServer) PostApiSendCoin(w http.ResponseWriter, r *http.Request) {
 	var errorDescription string
 
-	username, ok := r.Context().Value("user_value").(string)
+	username, ok := r.Context().Value("username").(string)
 	if !ok || username == "" {
 		errorDescription = "User not authenticated"
 		sendErrorResponse(w, http.StatusUnauthorized, ErrorResponse{Errors: &errorDescription})

@@ -4,13 +4,18 @@ import (
 	auth2 "AvitoWinter/internal/auth"
 	"context"
 	"github.com/gorilla/mux"
-	log2 "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 )
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Исключаем эндпоинт аутентификации из проверки
+		if r.URL.Path == "/api/auth" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		var errorDescription string
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
@@ -35,7 +40,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "user_uuid", claims.UserUUID)
+		ctx := context.WithValue(r.Context(), "username", claims.Username)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -72,7 +77,6 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 // HandlerWithOptions creates http.Handler with additional options
 func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.Handler {
-	log2.Infof("HandlerWithOptionsHandlerWithOptionsHandlerWithOptionsHandlerWithOptionsHandlerWithOptions")
 	r := options.BaseRouter
 
 	if r == nil {

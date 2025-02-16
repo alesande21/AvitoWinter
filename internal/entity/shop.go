@@ -206,29 +206,27 @@ func validateIdentifier(identifier string) error {
 
 	matched, err := regexp.MatchString(identifierRegex, identifier)
 	if err != nil {
-		return fmt.Errorf("-> regexp.MatchString%v", err)
+		return fmt.Errorf("ошибка при проверке идентификатора: %v", err)
 	}
 
 	if !matched {
-		return fmt.Errorf(": идентификатор должен быть длинной 4-50 и содержать только буквы, цифры, точки, дефисы и симовлы подчеркивания")
+		return fmt.Errorf("идентификатор должен быть длиной от 4 до 50 символов и содержать только буквы, цифры, точки, дефисы и символы подчеркивания")
 	}
 
 	return nil
 }
 
 func validatePassword(password string) error {
-
-	passwordRegex := `^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[a-zA-Z\d@$!%*?&]{8,64}$`
+	passwordRegex := `^.{4,}$`
 
 	matched, err := regexp.MatchString(passwordRegex, password)
 	if err != nil {
-		return fmt.Errorf("-> regexp.MatchString%v", err)
+		return fmt.Errorf("ошибка при проверке пароля: %v", err)
 	}
 
 	if !matched {
-		return fmt.Errorf(": идентификатор должен быть длинной 8-64 и содержать хотя бы одну букву, одну цифру и один спецсимвол")
+		return fmt.Errorf("пароль должен быть длиной не менее 4 символов")
 	}
 
 	return nil
-
 }

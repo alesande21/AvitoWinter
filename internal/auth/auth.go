@@ -9,21 +9,22 @@ import (
 var jwtKey = []byte("MySecretKey")
 
 type JWTClaim struct {
-	UserUUID string `json:"user_uuid"`
+	Username string `json:"username"`
 	jwt.StandardClaims
 }
 
 func GenerateJWT(username string) (string, error) {
 	expirationTime := time.Now().Add(1 * time.Hour)
 	claims := &JWTClaim{
-		UserUUID: username,
+		Username: username,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(jwtKey)
-	if err != nil {
+	if err != nil || tokenString == "" {
 		return "", fmt.Errorf("-> token.SignedString%v", err)
 	}
 

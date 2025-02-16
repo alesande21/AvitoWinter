@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
-	middleware "github.com/oapi-codegen/nethttp-middleware"
 	log2 "github.com/sirupsen/logrus"
 	"log"
 	"net/http"
@@ -89,7 +88,7 @@ func RunApp() error {
 
 	userServer := http3.NewUserServer(shopService)
 	r := mux.NewRouter()
-	r.Use(middleware.OapiRequestValidator(swagger))
+	//r.Use(middleware.OapiRequestValidator(swagger))
 
 	handler := http3.HandlerWithOptions(userServer, http3.GorillaServerOptions{
 		BaseRouter: r,

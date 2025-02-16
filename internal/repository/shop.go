@@ -5,6 +5,7 @@ import (
 	entity2 "AvitoWinter/internal/entity"
 	"context"
 	"fmt"
+	log2 "github.com/sirupsen/logrus"
 	"log"
 )
 
@@ -28,6 +29,26 @@ type ShopRepo struct {
 
 func NewShopRepo(dbRepo database.DBRepository) *ShopRepo {
 	return &ShopRepo{dbRepo: dbRepo}
+}
+
+func (s ShopRepo) PutUser(ctx context.Context, credentials *entity2.UserCredentials) (string, error) {
+	query := `
+		INSERT INTO users (username, password)
+		VALUES ($1, $2)
+		RETURNING username, password, coins
+	`
+
+	newRepoUser := NewUser(credentials.Identifier(), credentials.Password(), 1000)
+
+	row := s.dbRepo.QueryRow(ctx, query, newRepoUser.Username, newRepoUser.Password)
+
+	err := row.Scan(&(*newRepoUser).Username, &(*newRepoUser).Password, &(*newRepoUser).Coins)
+	if err != nil {
+		log.Printf("Ошибка выполнения запроса в PutUser: %v\n", err)
+		return "", fmt.Errorf("->  row.Scan%v", err)
+	}
+
+	return newRepoUser.Username, nil
 }
 
 func (s ShopRepo) GetInfo(ctx context.Context, username string) (*entity2.UserInfo, error) {
@@ -56,12 +77,13 @@ func (s ShopRepo) GetInfo(ctx context.Context, username string) (*entity2.UserIn
 	return userInfo, nil
 }
 
-func (s ShopRepo) CheckUser(ctx context.Context, userCredential entity2.UserCredentials) (string, error) {
+func (s ShopRepo) CheckUser(ctx context.Context, userCredential *entity2.UserCredentials) (string, error) {
+	log2.Infof("1")
 	repoCredential, err := s.getUser(ctx, userCredential.Password())
 	if err != nil {
 		return "", fmt.Errorf("-> r.dbRepo.QueryRow.Scan: пользователь по идентификатору %s не найден: %w", userCredential.Identifier(), err)
 	}
-
+	log2.Infof("2")
 	err = repoCredential.CheckPassword(userCredential.Password())
 	if err != nil {
 		return "", fmt.Errorf("-> repoCredential.CheckPassword%v", err)
@@ -267,7 +289,9 @@ func (s ShopRepo) getUser(ctx context.Context, username string) (*User, error) {
 		WHERE username = $1
 	`
 
-	var user *User
+	log2.Infof("getUser 1")
+
+	var user User
 
 	row := s.dbRepo.QueryRow(ctx, query, username)
 	err := row.Scan(&user.Username, &user.Password, &user.Coins)
@@ -275,7 +299,9 @@ func (s ShopRepo) getUser(ctx context.Context, username string) (*User, error) {
 		return nil, fmt.Errorf("-> r.dbRepo.QueryRow.Scan: пользователь по username %s не найден: %w", username, err)
 	}
 
-	return user, nil
+	log2.Infof("getUser 2")
+
+	return &user, nil
 }
 
 func (s ShopRepo) getOwnershipByUserAndItem(ctx context.Context, user string, item string) (*Ownership, error) {

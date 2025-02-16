@@ -21,9 +21,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      POSTGRES_CONN: "host=db_user port=5432 user=postgres password=1 dbname=postgres sslmode=disable"
+      POSTGRES_CONN: "host=db_shop port=5432 user=postgres password=1 dbname=postgres sslmode=disable"
       POSTGRES_DATABASE: postgres
-      POSTGRES_HOST: db_user
+      POSTGRES_HOST: db_shop
       POSTGRES_PASSWORD: 1
       POSTGRES_PORT: 5432
       POSTGRES_USERNAME: postgres

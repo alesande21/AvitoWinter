@@ -9,7 +9,8 @@ import (
 type ShopRepo interface {
 	GetInfo(ctx context.Context, username string) (*entity2.UserInfo, error)
 	PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo) error
-	CheckUser(ctx context.Context, userCredential entity2.UserCredentials) (string, error)
+	CheckUser(ctx context.Context, userCredential *entity2.UserCredentials) (string, error)
+	PutUser(ctx context.Context, userCredential *entity2.UserCredentials) (string, error)
 	PutTransferInfo(ctx context.Context, info entity2.TransferInfo) error
 }
 
@@ -33,10 +34,18 @@ func (s *ShopService) PurchaseItem(ctx context.Context, info entity2.PurchaseInf
 	return s.PurchaseItem(ctx, info)
 }
 
-func (s *ShopService) GetUserByCredentials(ctx context.Context, userCredential entity2.UserCredentials) (string, error) {
+func (s *ShopService) GetUserByCredentials(ctx context.Context, userCredential *entity2.UserCredentials) (string, error) {
 	username, err := s.repo.CheckUser(ctx, userCredential)
 	if err != nil {
 		return "", fmt.Errorf("-> s.Repo.CheckUser%v", err)
+	}
+	return username, nil
+}
+
+func (s *ShopService) CreateUser(ctx context.Context, userCredential *entity2.UserCredentials) (string, error) {
+	username, err := s.repo.PutUser(ctx, userCredential)
+	if err != nil {
+		return "", fmt.Errorf("-> s.Repo.PutUser%v", err)
 	}
 	return username, nil
 }
