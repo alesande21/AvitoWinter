@@ -78,12 +78,11 @@ func (s ShopRepo) GetInfo(ctx context.Context, username string) (*entity2.UserIn
 }
 
 func (s ShopRepo) CheckUser(ctx context.Context, userCredential *entity2.UserCredentials) (string, error) {
-	log2.Infof("1")
 	repoCredential, err := s.getUser(ctx, userCredential.Password())
 	if err != nil {
 		return "", fmt.Errorf("-> r.dbRepo.QueryRow.Scan: пользователь по идентификатору %s не найден: %w", userCredential.Identifier(), err)
 	}
-	log2.Infof("2")
+
 	err = repoCredential.CheckPassword(userCredential.Password())
 	if err != nil {
 		return "", fmt.Errorf("-> repoCredential.CheckPassword%v", err)
@@ -118,17 +117,20 @@ func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo
 		WHERE username = $1
 		RETURNING coins
 	`
+	log2.Infof("1")
 
 	item, err := s.getItemByProductName(ctx, info.Item())
 	if err != nil {
 		return fmt.Errorf("-> s.getItemByProductName%v", err)
 	}
+	log2.Infof("2")
 
 	//TODO так как есть аутификация возможно это не нужно, хотя нужно для нахождения UUID юзера
 	user, err := s.getUser(ctx, info.Username())
 	if err != nil {
 		return fmt.Errorf("-> s.getUserByUsername%v", err)
 	}
+	log2.Infof("3")
 
 	if user.Coins < item.Price {
 		return fmt.Errorf(": недостаточно монет на счете. Монет - %d, необходимо - %d", user.Coins, item.Price)
@@ -146,34 +148,42 @@ func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo
 		}
 	}()
 
+	log2.Infof("4")
+
 	row := tx.QueryRowContext(ctx, queryInsertPurchase, repoPurchase.User, repoPurchase.Item,
 		repoPurchase.Quantity, repoPurchase.TotalPrice, repoPurchase.DateCreated)
-	err = row.Scan(&repoPurchase.ID, &repoPurchase.User, &repoPurchase.Item, &repoPurchase.Quantity,
-		&repoPurchase.TotalPrice, &repoPurchase.DateCreated)
+	err = row.Scan(&(*repoPurchase).ID, &(*repoPurchase).User, &(*repoPurchase).Item, &(*repoPurchase).Quantity,
+		&(*repoPurchase).TotalPrice, &(*repoPurchase).DateCreated)
 	if err != nil {
 		log.Printf("Ошибка выполнения запроса в PutPurchaseInfo: %v\n", err)
 		return fmt.Errorf("-> row.Scan:%s", err)
 	}
 
+	log2.Infof("5")
+
 	userOwnership, err := s.getOwnershipByUserAndItem(ctx, user.Username, item.ProductName)
 	if err != nil {
+		log2.Infof("5.1")
 		row = tx.QueryRowContext(ctx, queryInsertOwnership, user.Username, item.ProductName, 1)
-		err = row.Scan(&userOwnership.User, &userOwnership.Item, &userOwnership.Quantity)
+		err = row.Scan(&(*userOwnership).User, &(*userOwnership).Item, &(*userOwnership).Quantity)
 		if err != nil {
 			log.Printf("Ошибка выполнения запроса в PutPurchaseInfo: %v\n", err)
 			return fmt.Errorf("-> row.Scan:%s", err)
 		}
 	} else {
+		log2.Infof("5.2")
 		row = tx.QueryRowContext(ctx, queryUpdateOwnership, userOwnership.User, userOwnership.Item, userOwnership.IncQuantity())
-		err = row.Scan(&userOwnership.User, &userOwnership.Item, &userOwnership.Quantity)
+		err = row.Scan(&(*userOwnership).User, &(*userOwnership).Item, &(*userOwnership).Quantity)
 		if err != nil {
 			log.Printf("Ошибка выполнения запроса в PutPurchaseInfo: %v\n", err)
 			return fmt.Errorf("-> row.Scan:%s", err)
 		}
 	}
 
+	log2.Infof("6")
+
 	row = tx.QueryRowContext(ctx, queryUpdateCoins, user.Username, user.Coins-item.Price)
-	err = row.Scan(&user.Coins)
+	err = row.Scan(&(*user).Coins)
 	if err != nil {
 		log.Printf("Ошибка выполнения запроса в PutPurchaseInfo: %v\n", err)
 		return fmt.Errorf("-> row.Scan:%s", err)
@@ -271,7 +281,7 @@ func (s ShopRepo) getItemByProductName(ctx context.Context, productName string) 
 		WHERE product_name = $1
 	`
 
-	var item *Item
+	var item Item
 
 	row := s.dbRepo.QueryRow(ctx, query, productName)
 	err := row.Scan(&item.ProductName, &item.Price)
@@ -279,7 +289,7 @@ func (s ShopRepo) getItemByProductName(ctx context.Context, productName string) 
 		return nil, fmt.Errorf("-> r.dbRepo.QueryRow.Scan: продукт по productName %s не найден: %w", productName, err)
 	}
 
-	return item, nil
+	return &item, nil
 }
 
 func (s ShopRepo) getUser(ctx context.Context, username string) (*User, error) {
@@ -311,7 +321,7 @@ func (s ShopRepo) getOwnershipByUserAndItem(ctx context.Context, user string, it
 		WHERE username = $1 AND item = $2
 	`
 
-	var own *Ownership
+	var own Ownership
 
 	row := s.dbRepo.QueryRow(ctx, query, user, item)
 	err := row.Scan(&own.User, &own.Item, &own.Quantity)
@@ -319,7 +329,7 @@ func (s ShopRepo) getOwnershipByUserAndItem(ctx context.Context, user string, it
 		return nil, fmt.Errorf("-> r.dbRepo.QueryRow.Scan: владение по user - %s и product - %s: %w", own.User, own.Item, err)
 	}
 
-	return own, nil
+	return &own, nil
 }
 
 func (s ShopRepo) getUserItems(ctx context.Context, username string) ([]UserItemQuery, error) {

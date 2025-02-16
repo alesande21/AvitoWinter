@@ -31,7 +31,7 @@ func (s *ShopService) TransferCoin(ctx context.Context, transferInfo entity2.Tra
 }
 
 func (s *ShopService) PurchaseItem(ctx context.Context, info entity2.PurchaseInfo) error {
-	return s.PurchaseItem(ctx, info)
+	return s.repo.PutPurchaseInfo(ctx, info)
 }
 
 func (s *ShopService) GetUserByCredentials(ctx context.Context, userCredential *entity2.UserCredentials) (string, error) {
