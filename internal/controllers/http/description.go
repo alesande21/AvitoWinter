@@ -109,6 +109,24 @@ func (u UserServer) GetApiInfo(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, http.StatusUnauthorized, ErrorResponse{Errors: &errorDescription})
 		return
 	}
+
+	info, err := u.service.GetInfo(r.Context(), username)
+	if err != nil {
+		log2.Errorf("GetApiInfo-> json.NewDecoder: что то пошло не так: %s", err.Error())
+		errorDescription = "Не удалось сформировать info."
+		sendErrorResponse(w, http.StatusBadRequest, ErrorResponse{Errors: &errorDescription})
+		return
+	}
+
+	resInfo := MapUserInfoToInfoResponse(info)
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resInfo); err != nil {
+		log2.Errorf("CreateUser-> json.NewEncoder: ошибка при кодирования овета: %s", err.Error())
+		errorDescription = "Ошибка кодирования ответа."
+		sendErrorResponse(w, http.StatusInternalServerError, ErrorResponse{Errors: &errorDescription})
+	}
+
 }
 
 func (u UserServer) PostApiSendCoin(w http.ResponseWriter, r *http.Request) {
