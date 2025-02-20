@@ -5,7 +5,6 @@ import (
 	entity2 "AvitoWinter/internal/entity"
 	"context"
 	"fmt"
-	log2 "github.com/sirupsen/logrus"
 	"log"
 )
 
@@ -117,20 +116,17 @@ func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo
 		WHERE username = $1
 		RETURNING coins
 	`
-	log2.Infof("1")
 
 	item, err := s.getItemByProductName(ctx, info.Item())
 	if err != nil {
 		return fmt.Errorf("-> s.getItemByProductName%v", err)
 	}
-	log2.Infof("2")
 
 	//TODO так как есть аутификация возможно это не нужно, хотя нужно для нахождения UUID юзера
 	user, err := s.getUser(ctx, info.Username())
 	if err != nil {
 		return fmt.Errorf("-> s.getUserByUsername%v", err)
 	}
-	log2.Infof("3")
 
 	if user.Coins < item.Price {
 		return fmt.Errorf(": недостаточно монет на счете. Монет - %d, необходимо - %d", user.Coins, item.Price)
@@ -148,8 +144,6 @@ func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo
 		}
 	}()
 
-	log2.Infof("4")
-
 	row := tx.QueryRowContext(ctx, queryInsertPurchase, repoPurchase.User, repoPurchase.Item,
 		repoPurchase.Quantity, repoPurchase.TotalPrice, repoPurchase.DateCreated)
 	err = row.Scan(&(*repoPurchase).ID, &(*repoPurchase).User, &(*repoPurchase).Item, &(*repoPurchase).Quantity,
@@ -159,11 +153,9 @@ func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo
 		return fmt.Errorf("-> row.Scan:%s", err)
 	}
 
-	log2.Infof("5")
-
 	userOwnership, err := s.getOwnershipByUserAndItem(ctx, user.Username, item.ProductName)
 	if err != nil {
-		log2.Infof("5.1")
+		userOwnership = new(Ownership)
 		row = tx.QueryRowContext(ctx, queryInsertOwnership, user.Username, item.ProductName, 1)
 		err = row.Scan(&(*userOwnership).User, &(*userOwnership).Item, &(*userOwnership).Quantity)
 		if err != nil {
@@ -171,7 +163,6 @@ func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo
 			return fmt.Errorf("-> row.Scan:%s", err)
 		}
 	} else {
-		log2.Infof("5.2")
 		row = tx.QueryRowContext(ctx, queryUpdateOwnership, userOwnership.User, userOwnership.Item, userOwnership.IncQuantity())
 		err = row.Scan(&(*userOwnership).User, &(*userOwnership).Item, &(*userOwnership).Quantity)
 		if err != nil {
@@ -179,8 +170,6 @@ func (s ShopRepo) PutPurchaseInfo(ctx context.Context, info entity2.PurchaseInfo
 			return fmt.Errorf("-> row.Scan:%s", err)
 		}
 	}
-
-	log2.Infof("6")
 
 	row = tx.QueryRowContext(ctx, queryUpdateCoins, user.Username, user.Coins-item.Price)
 	err = row.Scan(&(*user).Coins)
@@ -254,8 +243,8 @@ func (s ShopRepo) PutTransferInfo(ctx context.Context, info entity2.TransferInfo
 		return fmt.Errorf("-> row.Scan:%s", err)
 	}
 
-	row = tx.QueryRowContext(ctx, queryUpdate, sender.Coins-repoTransfer.Amount, sender.Username, recipient.Username,
-		recipient.Coins+repoTransfer.Amount)
+	row = tx.QueryRowContext(ctx, queryUpdate, sender.Coins-repoTransfer.Amount, sender.Username,
+		recipient.Coins+repoTransfer.Amount, recipient.Username)
 	err = row.Scan(&sender.Username, &sender.Coins, &recipient.Username, &recipient.Coins)
 	if err != nil {
 		log.Printf("Ошибка выполнения запроса в PutTransferInfo: %v\n", err)
@@ -299,8 +288,6 @@ func (s ShopRepo) getUser(ctx context.Context, username string) (*User, error) {
 		WHERE username = $1
 	`
 
-	log2.Infof("getUser 1")
-
 	var user User
 
 	row := s.dbRepo.QueryRow(ctx, query, username)
@@ -308,8 +295,6 @@ func (s ShopRepo) getUser(ctx context.Context, username string) (*User, error) {
 	if err != nil {
 		return nil, fmt.Errorf("-> r.dbRepo.QueryRow.Scan: пользователь по username %s не найден: %w", username, err)
 	}
-
-	log2.Infof("getUser 2")
 
 	return &user, nil
 }

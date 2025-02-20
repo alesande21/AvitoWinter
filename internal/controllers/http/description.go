@@ -67,7 +67,7 @@ func (u UserServer) GetApiBuyItem(w http.ResponseWriter, r *http.Request, item s
 	var errorDescription string
 
 	username, ok := r.Context().Value("username").(string)
-	log2.Infof("username создан %s %v", username, ok)
+	log2.Infof("username получен %s %v", username, ok)
 
 	if !ok || username == "" {
 		errorDescription = "User not authenticated"

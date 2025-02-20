@@ -1,7 +1,6 @@
 package entity
 
 import (
-	"AvitoWinter/internal/utils"
 	"fmt"
 	"regexp"
 )
@@ -146,9 +145,9 @@ func NewTransferInfo(sender string, recipient string, amount int) (*TransferInfo
 }
 
 func (t TransferInfo) validate() error {
-	err := utils.Validate(t.sender)
+	err := validateIdentifier(t.sender)
 	if err != nil {
-		return fmt.Errorf("-> utils.Validate%v", err)
+		return fmt.Errorf("-> validateIdentifier%v", err)
 	}
 
 	err = validateIdentifier(t.recipient)

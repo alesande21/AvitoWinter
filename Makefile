@@ -25,4 +25,7 @@ up:
 down:
 	docker compose down -v
 
-.PHONY: all, install, ver, genUserService
+nano:
+	nano ~/.docker/config.json
+
+.PHONY: all, install, ver, genUserService, nano
