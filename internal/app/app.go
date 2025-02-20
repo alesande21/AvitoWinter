@@ -88,7 +88,6 @@ func RunApp() error {
 
 	userServer := http3.NewUserServer(shopService)
 	r := mux.NewRouter()
-	//r.Use(middleware.OapiRequestValidator(swagger))
 
 	handler := http3.HandlerWithOptions(userServer, http3.GorillaServerOptions{
 		BaseRouter: r,
@@ -99,11 +98,6 @@ func RunApp() error {
 		Addr:    serverAddress.EnvAddress,
 		Handler: handler,
 	}
-
-	//s := &http.Server{
-	//	Addr:    serverAddress.EnvAddress,
-	//	Handler: r,
-	//}
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
