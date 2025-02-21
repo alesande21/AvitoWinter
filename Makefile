@@ -13,6 +13,9 @@ ver:
 genService:
 	oapi-codegen --config=configs/oapi/configShopService.yaml api/shopAPI.yml
 
+genClient:
+	oapi-codegen --config=configs/oapi/configShopClient.yaml api/shopAPI.yml
+
 init:
 	go mod init "AvitoWinter"
 

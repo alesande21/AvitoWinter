@@ -128,7 +128,7 @@ func RunApp() error {
 		log2.Info("Сервер завершил работу")
 	case err := <-shutDownChan:
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			return fmt.Errorf(": ошибка при запуске сервера: %w", err)
+			return fmt.Errorf(": ошибка при запуске сервера: %v", err)
 		}
 	}
 

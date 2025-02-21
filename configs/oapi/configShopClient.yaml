@@ -1,0 +1,8 @@
+output: test/e2e/client/test.client.gen.go
+package: testClient
+generate:
+  client: true
+  models: true
+  embedded-spec: true
+output-options:
+  client-type-name: CustomTestClient
