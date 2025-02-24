@@ -2,24 +2,26 @@ package testClient
 
 import (
 	"context"
-	"database/sql"
 	"io"
 	"net/http"
 )
 
-type TestClient struct {
-	db *sql.DB
-}
+type TestClient struct{}
 
 var _ ClientInterface = (*TestClient)(nil)
 
-func NewTestClient(db *sql.DB) *TestClient {
-	return &TestClient{db: db}
+func NewTestClient() *TestClient {
+	return &TestClient{}
 }
 
 func (t TestClient) PostApiAuthWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	//TODO implement me
-	panic("implement me")
+	req, err := http.NewRequestWithContext(ctx, "POST", "http://localhost:8080/api/auth", body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", contentType)
+	return http.DefaultClient.Do(req)
 }
 
 func (t TestClient) PostApiAuth(ctx context.Context, body PostApiAuthJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {

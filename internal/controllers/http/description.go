@@ -54,13 +54,16 @@ func (u UserServer) PostApiAuth(w http.ResponseWriter, r *http.Request) {
 	var authResponse AuthResponse
 	authResponse.Token = &tokenString
 
-	w.WriteHeader(http.StatusOK)
+	log2.Infof("%v", *authResponse.Token)
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(authResponse); err != nil {
 		errorDescription = "Ошибка кодирования ответа."
 		log2.Errorf("CreateUser-> json.NewEncoder: ошибка при кодирования овета: %s", err.Error())
 		sendErrorResponse(w, http.StatusInternalServerError, ErrorResponse{Errors: &errorDescription})
+		return
 	}
+	w.WriteHeader(http.StatusOK)
+
 }
 
 func (u UserServer) GetApiBuyItem(w http.ResponseWriter, r *http.Request, item string) {
